@@ -1,0 +1,43 @@
+// Prisma schema for the Verdanta perks store.
+// SQLite for local/dev; swap the datasource to Postgres for production.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// A purchase order. Lifecycle:
+//   awaiting_payment -> pending_review -> approved | rejected
+model Order {
+  id              String   @id @default(cuid())
+  planSlug        String
+  planName        String
+  amount          Int // in the smallest currency unit is overkill for INR here; stored as whole rupees
+  currency        String   @default("INR")
+  note            String   @unique // unique payment note shown to the buyer / encoded in the UPI intent
+
+  status          String   @default("awaiting_payment")
+
+  // Buyer identity comes from the authenticated Discord session (never client input).
+  discordUserId   String
+  discordUsername String
+
+  // Payment proof (submitted after payment).
+  utr             String?  @unique // 12-digit UPI reference; UNIQUE blocks reuse across orders
+  screenshotPath  String? // path under ./uploads (served via a gated route)
+  screenshotHash  String? // sha256 of the uploaded image, for duplicate detection
+  duplicateFlag   Boolean  @default(false) // set when the same screenshot hash was seen before
+
+  // Admin review.
+  reviewedBy      String?
+  reviewNote      String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([status])
+  @@index([discordUserId])
+}

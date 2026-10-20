@@ -1,0 +1,221 @@
+@import "tailwindcss";
+
+/* ============================================================
+   Verdanta — nature-premium design system (Tailwind v4)
+   Palette: forest / sage / mint greens + built-in emerald,
+   teal, sky, stone. Bright, fresh, elegant.
+   ============================================================ */
+
+@theme {
+  /* Typography — wired to next/font CSS variables in layout.tsx */
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-fraunces), ui-serif, Georgia, "Times New Roman", serif;
+
+  /* ---- Forest: primary deep green ---- */
+  --color-forest-50: #edf7f0;
+  --color-forest-100: #d4ecdb;
+  --color-forest-200: #a9d8b9;
+  --color-forest-300: #78bd92;
+  --color-forest-400: #4ca06f;
+  --color-forest-500: #2f855a;
+  --color-forest-600: #236b48;
+  --color-forest-700: #1c553a;
+  --color-forest-800: #17442f;
+  --color-forest-900: #123527;
+  --color-forest-950: #082018;
+
+  /* ---- Sage: soft muted green ---- */
+  --color-sage-50: #f5f8f3;
+  --color-sage-100: #e7efe2;
+  --color-sage-200: #cfdfc6;
+  --color-sage-300: #aec7a0;
+  --color-sage-400: #8aab78;
+  --color-sage-500: #6b8f58;
+  --color-sage-600: #547144;
+  --color-sage-700: #445a38;
+  --color-sage-800: #394a30;
+  --color-sage-900: #313e2a;
+  --color-sage-950: #182013;
+
+  /* ---- Mint: fresh light green ---- */
+  --color-mint-50: #eefdf5;
+  --color-mint-100: #d5fae7;
+  --color-mint-200: #aef3d1;
+  --color-mint-300: #74e6b3;
+  --color-mint-400: #38d190;
+  --color-mint-500: #12b876;
+  --color-mint-600: #06945e;
+  --color-mint-700: #04764d;
+  --color-mint-800: #075d3f;
+  --color-mint-900: #074c35;
+  --color-mint-950: #002b1d;
+
+  /* ---- Semantic surfaces ---- */
+  --color-canvas: #f5faf4;
+  --color-cream: #f7f4ec;
+  --color-ink: #0f2a1d;
+  --color-ink-soft: #3a5344;
+
+  /* Radii */
+  --radius-4xl: 2rem;
+  --radius-5xl: 2.75rem;
+
+  /* Soft, natural shadows */
+  --shadow-soft: 0 12px 40px -14px rgba(18, 68, 47, 0.22);
+  --shadow-card: 0 20px 60px -24px rgba(18, 68, 47, 0.28);
+  --shadow-glow: 0 0 0 1px rgba(47, 133, 90, 0.16), 0 24px 70px -22px rgba(47, 133, 90, 0.4);
+
+  /* Reusable ambient animations */
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-float-slow: float 11s ease-in-out infinite;
+  --animate-aurora: aurora 18s ease-in-out infinite alternate;
+  --animate-shimmer: shimmer 2.4s linear infinite;
+  --animate-drift: drift 26s linear infinite;
+  --animate-pulse-ring: pulse-ring 2.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-16px) rotate(3deg); }
+}
+
+@keyframes aurora {
+  0% { transform: translate3d(-4%, -2%, 0) scale(1); opacity: 0.75; }
+  50% { transform: translate3d(3%, 4%, 0) scale(1.12); opacity: 1; }
+  100% { transform: translate3d(4%, -3%, 0) scale(1.05); opacity: 0.8; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.9); opacity: 0.7; }
+  70% { transform: scale(1.6); opacity: 0; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* ============================================================
+   Base
+   ============================================================ */
+@layer base {
+  :root {
+    --grad-meadow: linear-gradient(135deg, #eafaf0 0%, #d7f1e3 45%, #cfe9f2 100%);
+    --grad-river: linear-gradient(120deg, #22ab6f 0%, #14a5a0 55%, #3aa0d8 100%);
+    --grad-forest: linear-gradient(135deg, #2f855a 0%, #17553a 100%);
+    --grad-mist: linear-gradient(180deg, #f5faf4 0%, #e8f4ec 100%);
+    --grad-sun: radial-gradient(60% 60% at 70% 20%, rgba(255, 244, 214, 0.9) 0%, rgba(255, 244, 214, 0) 70%);
+    --grad-gold: linear-gradient(135deg, #f6d38a 0%, #e9b45f 100%);
+    --grad-violet: linear-gradient(135deg, #8b7bd8 0%, #5f8fd8 100%);
+  }
+
+  * {
+    border-color: color-mix(in oklab, var(--color-forest-900) 10%, transparent);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--color-mint-400) 45%, transparent);
+    color: var(--color-forest-950);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-forest-500);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+/* ============================================================
+   Component helpers
+   ============================================================ */
+@layer components {
+  .bg-meadow { background-image: var(--grad-meadow); }
+  .bg-river { background-image: var(--grad-river); }
+  .bg-forest-grad { background-image: var(--grad-forest); }
+  .bg-mist { background-image: var(--grad-mist); }
+
+  /* Glassmorphism surface */
+  .glass {
+    background: color-mix(in oklab, white 62%, transparent);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    border: 1px solid color-mix(in oklab, white 55%, transparent);
+  }
+  .glass-dark {
+    background: color-mix(in oklab, var(--color-forest-950) 42%, transparent);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    border: 1px solid color-mix(in oklab, white 14%, transparent);
+  }
+
+  /* Gradient text */
+  .text-gradient {
+    background: var(--grad-river);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .text-gradient-forest {
+    background: linear-gradient(120deg, var(--color-forest-600), var(--color-mint-500));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Animated shimmer border/text used on the "most popular" plan */
+  .shimmer {
+    background: linear-gradient(
+      110deg,
+      transparent 20%,
+      color-mix(in oklab, white 85%, transparent) 45%,
+      transparent 70%
+    );
+    background-size: 200% 100%;
+    animation: var(--animate-shimmer);
+  }
+}
+
+@layer utilities {
+  .container-px { padding-inline: clamp(1rem, 5vw, 2.5rem); }
+  .mask-fade-b { -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent); mask-image: linear-gradient(to bottom, black 60%, transparent); }
+}
+
+/* ============================================================
+   Accessibility: honor reduced motion everywhere
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  html { scroll-behavior: auto; }
+}

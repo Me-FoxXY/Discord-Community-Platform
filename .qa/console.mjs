@@ -1,0 +1,11 @@
+import { chromium } from "playwright";
+const browser = await chromium.launch();
+const ctx = await browser.newContext({ reducedMotion: "reduce" });
+const page = await ctx.newPage();
+const msgs = [];
+page.on("console", (m) => msgs.push(`[${m.type()}] ${m.text()}`));
+page.on("pageerror", (e) => msgs.push(`[pageerror] ${e.message}`));
+await page.goto("http://localhost:3000/shop/premium-pro", { waitUntil: "networkidle" });
+await page.waitForTimeout(800);
+console.log(msgs.filter((m) => /hydrat|warn|error|mismatch/i.test(m)).slice(0, 10).join("\n") || "no hydration/error messages");
+await browser.close();
