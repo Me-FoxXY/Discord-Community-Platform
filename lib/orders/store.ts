@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import type { Order } from "@prisma/client";
 
 export type OrderStatus = "awaiting_payment" | "pending_review" | "approved" | "rejected";
+export class OrderConflictError extends Error {}
 
 export class DuplicateUtrError extends Error {
   constructor() {
@@ -15,6 +16,9 @@ export type CreateOrderInput = {
   planSlug: string;
   planName: string;
   amount: number;
+  subtotal: number;
+  discountAmount: number;
+  couponCode: string | null;
   discordUserId: string;
   discordUsername: string;
 };
@@ -26,6 +30,9 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       planSlug: input.planSlug,
       planName: input.planName,
       amount: input.amount,
+      subtotal: input.subtotal,
+      discountAmount: input.discountAmount,
+      couponCode: input.couponCode,
       currency: "INR",
       note,
       status: "awaiting_payment",
@@ -65,7 +72,7 @@ export async function submitProof(input: SubmitProofInput): Promise<Order> {
 
   try {
     return await prisma.order.update({
-      where: { id: input.orderId },
+      where: { id: input.orderId, status: "awaiting_payment" },
       data: {
         utr: input.utr,
         screenshotPath: input.screenshotPath,
@@ -75,6 +82,9 @@ export async function submitProof(input: SubmitProofInput): Promise<Order> {
       },
     });
   } catch (err: unknown) {
+    if (typeof err === "object" && err !== null && "code" in err && err.code === "P2025") {
+      throw new OrderConflictError("Payment proof was already submitted.");
+    }
     // Unique constraint race on UTR.
     if (typeof err === "object" && err !== null && "code" in err && (err as { code?: string }).code === "P2002") {
       throw new DuplicateUtrError();
@@ -101,21 +111,13 @@ export async function reviewOrder(
   note?: string,
 ): Promise<Order> {
   const status: OrderStatus = action === "approve" ? "approved" : "rejected";
-  const order = await prisma.order.update({
-    where: { id },
-    data: { status, reviewedBy: reviewer, reviewNote: note ?? null },
+  const result = await prisma.order.updateMany({
+    where: { id, status: "pending_review", utr: { not: null }, screenshotPath: { not: null } },
+    data: {
+      status, reviewedBy: reviewer, reviewNote: note ?? null,
+      deliveryStatus: action === "approve" ? "pending" : "not_requested",
+    },
   });
-  if (status === "approved") await onOrderApproved(order);
-  return order;
-}
-
-/**
- * Perk-grant hook. This is where a Discord bot call would assign the purchased
- * role / perk to the buyer's Discord account.
- */
-async function onOrderApproved(order: Order): Promise<void> {
-  // TODO: integrate Discord bot — assign role, grant XP boost, create voice channel.
-  console.log(
-    `[perks] grant "${order.planName}" to ${order.discordUsername} (${order.discordUserId}) — order ${order.id}`,
-  );
+  if (!result.count) throw new OrderConflictError("Only an order awaiting review with payment proof can be reviewed.");
+  return prisma.order.findUniqueOrThrow({ where: { id } });
 }

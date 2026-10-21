@@ -23,8 +23,12 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const dto: OrderDTO = {
     id: order.id,
     status: order.status as OrderDTO["status"],
+    deliveryStatus: order.deliveryStatus,
     planName: order.planName,
     amount: order.amount,
+    subtotal: order.subtotal,
+    discountAmount: order.discountAmount,
+    couponCode: order.couponCode,
     note: order.note,
     utr: order.utr,
     reviewNote: order.reviewNote,

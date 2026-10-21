@@ -49,6 +49,7 @@ web_modules/
 
 # Optional npm cache directory
 .npm
+.npm-cache/
 
 # Optional eslint cache
 .eslintcache
@@ -150,7 +151,7 @@ next-env.d.ts
 *.db
 *.db-journal
 prisma/dev.db
-prisma/migrations/
 
 # Uploaded payment screenshots (private)
 /uploads/
+/.local/

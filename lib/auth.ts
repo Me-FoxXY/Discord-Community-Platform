@@ -5,7 +5,7 @@ import { isAdminId } from "@/lib/auth/admin";
 
 const hasDiscord = Boolean(process.env.AUTH_DISCORD_ID && process.env.AUTH_DISCORD_SECRET);
 const enableDevLogin =
-  process.env.NODE_ENV !== "production" || process.env.ENABLE_DEV_LOGIN === "true";
+  process.env.NODE_ENV === "development";
 
 const DEV_USER_ID = "000000000000000000";
 
@@ -30,7 +30,7 @@ if (enableDevLogin) {
         username: { label: "Display name", type: "text" },
       },
       // Dev-only mock sign-in so the login-gated flows are testable without
-      // real Discord credentials. Never trusted in production unless explicitly enabled.
+      // real Discord credentials. This provider is never enabled in production.
       authorize: async (creds) => {
         const username =
           typeof creds?.username === "string" && creds.username.trim()

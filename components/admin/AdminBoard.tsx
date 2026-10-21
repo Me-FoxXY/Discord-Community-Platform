@@ -17,8 +17,13 @@ import { formatINR, cn } from "@/lib/utils";
 export type AdminOrderDTO = {
   id: string;
   status: string;
+  deliveryStatus: string;
+  deliveryError: string | null;
   planName: string;
   amount: number;
+  subtotal: number;
+  discountAmount: number;
+  couponCode: string | null;
   note: string;
   utr: string | null;
   duplicateFlag: boolean;
@@ -51,20 +56,21 @@ export function AdminBoard({
   const [rejectNote, setRejectNote] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  async function act(order: AdminOrderDTO, action: "approve" | "reject", note?: string) {
+  async function act(order: AdminOrderDTO, action: "approve" | "reject" | "retry", note?: string) {
     setBusy(order.id);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/orders/${order.id}/verify`, {
+      const res = await fetch(`/api/admin/orders/${order.id}/${action === "retry" ? "delivery" : "verify"}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action, note }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Action failed.");
-      const newStatus = action === "approve" ? "approved" : "rejected";
+      const updated = { ...order, status: data.status, deliveryStatus: data.deliveryStatus, deliveryError: data.deliveryError };
       setPending((list) => list.filter((o) => o.id !== order.id));
-      setRecent((list) => list.map((o) => (o.id === order.id ? { ...o, status: newStatus } : o)));
+      setRecent((list) => [updated, ...list.filter((o) => o.id !== order.id)]);
+      setTab("recent");
       setRejecting(null);
       setRejectNote("");
     } catch (e) {
@@ -130,12 +136,28 @@ export function AdminBoard({
 
               <div className="mt-4 grid gap-3 rounded-2xl bg-mist p-4 text-sm sm:grid-cols-4">
                 <Meta label="Plan" value={o.planName} />
-                <Meta label="Amount" value={formatINR(o.amount)} />
+                <Meta label="Amount to verify" value={formatINR(o.amount)} />
                 <Meta label="Note" value={o.note} mono />
                 <Meta label="UTR" value={o.utr ?? "—"} mono />
               </div>
+              {o.couponCode && (
+                <p className="mt-3 text-sm text-forest-700">
+                  Coupon {o.couponCode}: {formatINR(o.subtotal)} − {formatINR(o.discountAmount)} discount = {formatINR(o.amount)} payable.
+                </p>
+              )}
 
               <div className="mt-4 flex flex-wrap items-center gap-2">
+                {o.status === "approved" && (
+                  <div className="w-full text-sm">
+                    <p>Role delivery: {o.deliveryStatus.replaceAll("_", " ")}</p>
+                    {o.deliveryError && <p className="text-red-600">{o.deliveryError}</p>}
+                    {o.deliveryStatus !== "delivered" && (
+                      <Button variant="outline" size="sm" disabled={busy === o.id} onClick={() => act(o, "retry")}>
+                        {busy === o.id ? "Delivering..." : "Retry role delivery"}
+                      </Button>
+                    )}
+                  </div>
+                )}
                 <Button
                   variant="outline"
                   size="sm"

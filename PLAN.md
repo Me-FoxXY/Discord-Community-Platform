@@ -8,7 +8,7 @@
 - Automatic perk delivery may happen after manual approval.
 - Host the application on Vercel.
 - Build and verify the product first. Add the deployed URL and repository to the portfolio last.
-- Current code is the original single-server baseline. The features below are planned, not implemented.
+- Current code is still single-server. Step 1 implementation is in progress; later steps are planned.
 
 ## 1. Finish the current purchase flow
 
@@ -17,8 +17,18 @@
 - After approval, grant the purchased Discord role.
 - Show payment approval and perk delivery separately.
 - Let an admin retry delivery if Discord is unavailable.
+- Let admins create discount coupons and let members apply one at checkout.
+- Show the original price, discount, and final UPI payment amount to members and reviewers.
 
 Done when: a manually approved purchase delivers its role, and retrying does not duplicate benefits.
+
+Implementation added: conditional payment reviews, separate role delivery status,
+Discord role assignment, recoverable delivery leases, admin retries, and buyer status messages.
+Live validation needs a PostgreSQL database and real Discord bot/member/role configuration.
+Update: an isolated local PostgreSQL database is configured and all three migrations
+have been applied. Database-backed purchase and concurrency tests pass; Discord calls
+and authentication are simulated in those tests. Real Discord delivery remains to be verified.
+Only the plan role is automated in this milestone; other benefits still need staff setup.
 
 ## 2. Track memberships
 

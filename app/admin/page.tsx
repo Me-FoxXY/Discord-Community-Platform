@@ -5,6 +5,10 @@ import { GradientBlobs } from "@/components/decor/nature";
 import { AdminBoard, type AdminOrderDTO } from "@/components/admin/AdminBoard";
 import { ShieldCheck } from "lucide-react";
 import type { Order } from "@prisma/client";
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { CouponManager } from "@/components/admin/CouponManager";
 
 export const metadata: Metadata = {
   title: "Admin",
@@ -17,8 +21,13 @@ function toDTO(o: Order): AdminOrderDTO {
   return {
     id: o.id,
     status: o.status,
+    deliveryStatus: o.deliveryStatus,
+    deliveryError: o.deliveryError,
     planName: o.planName,
     amount: o.amount,
+    subtotal: o.subtotal,
+    discountAmount: o.discountAmount,
+    couponCode: o.couponCode,
     note: o.note,
     utr: o.utr,
     duplicateFlag: o.duplicateFlag,
@@ -30,7 +39,10 @@ function toDTO(o: Order): AdminOrderDTO {
 }
 
 export default async function AdminPage() {
+  const session = await auth();
+  if (!session?.user?.isAdmin) redirect("/login");
   const [pending, recent] = await Promise.all([listPending(), listRecent(50)]);
+  const coupons = await prisma.coupon.findMany({ orderBy: { createdAt: "desc" } });
 
   return (
     <main className="relative min-h-dvh overflow-hidden pb-24 pt-32 sm:pt-36">
@@ -48,6 +60,7 @@ export default async function AdminPage() {
 
         <div className="mt-10">
           <AdminBoard initialPending={pending.map(toDTO)} initialRecent={recent.map(toDTO)} />
+          <CouponManager initial={coupons.map((coupon) => ({ ...coupon, expiresAt: coupon.expiresAt?.toISOString() ?? null, createdAt: undefined }))} />
         </div>
       </Container>
     </main>

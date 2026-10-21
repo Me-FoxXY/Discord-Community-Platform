@@ -168,7 +168,7 @@ export const plans: Plan[] = [
 export const plansBySlug = Object.fromEntries(plans.map((p) => [p.slug, p])) as Record<string, Plan>;
 
 export function getPlan(slug: string): Plan | undefined {
-  return plansBySlug[slug];
+  return Object.hasOwn(plansBySlug, slug) ? plansBySlug[slug] : undefined;
 }
 
 export function relatedPlans(slug: string): Plan[] {

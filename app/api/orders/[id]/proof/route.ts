@@ -3,7 +3,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { auth } from "@/lib/auth";
-import { getOrder, submitProof, DuplicateUtrError } from "@/lib/orders/store";
+import { getOrder, submitProof, DuplicateUtrError, OrderConflictError } from "@/lib/orders/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -61,6 +61,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   try {
     await submitProof({ orderId: order.id, utr, screenshotPath: dataUri, screenshotHash: hash });
   } catch (err) {
+    if (err instanceof OrderConflictError) {
+      return NextResponse.json({ error: err.message }, { status: 409 });
+    }
     if (err instanceof DuplicateUtrError) {
       return NextResponse.json(
         { error: "This UPI reference (UTR) has already been used. Each payment can only be submitted once." },

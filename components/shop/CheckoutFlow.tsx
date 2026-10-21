@@ -20,6 +20,9 @@ import { formatINR, cn } from "@/lib/utils";
 type OrderData = {
   orderId: string;
   amount: number;
+  subtotal: number;
+  discountAmount: number;
+  couponCode: string | null;
   note: string;
   upiId: string;
   payeeName: string;
@@ -37,6 +40,27 @@ export function CheckoutFlow({ plan, username }: { plan: Plan; username: string 
   const [utr, setUtr] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [couponCode, setCouponCode] = useState("");
+  const [applying, setApplying] = useState(false);
+  const [quote, setQuote] = useState<Pick<OrderData, "amount" | "subtotal" | "discountAmount" | "couponCode"> | null>(null);
+  const price = order ?? quote ?? { amount: plan.price, subtotal: plan.price, discountAmount: 0, couponCode: null };
+
+  async function applyCoupon() {
+    setApplying(true);
+    setError(null);
+    setQuote(null);
+    try {
+      const response = await fetch("/api/orders/quote", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planSlug: plan.slug, couponCode }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Could not apply coupon.");
+      setQuote(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not apply coupon.");
+    } finally { setApplying(false); }
+  }
 
   async function createOrder() {
     setCreating(true);
@@ -45,7 +69,7 @@ export function CheckoutFlow({ plan, username }: { plan: Plan; username: string 
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planSlug: plan.slug }),
+        body: JSON.stringify({ planSlug: plan.slug, couponCode: quote?.couponCode ?? undefined }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not start your order.");
@@ -123,7 +147,23 @@ export function CheckoutFlow({ plan, username }: { plan: Plan; username: string 
                 Delivering to <strong className="text-forest-800">{username}</strong>
               </div>
             </div>
-            <Button className="mt-8 w-full" size="lg" onClick={createOrder} disabled={creating}>
+            <div className="mt-6 rounded-2xl border border-forest-100 p-4">
+              <label htmlFor="coupon-code" className="text-sm font-medium text-forest-800">Have a coupon?</label>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <input id="coupon-code" value={couponCode} maxLength={32} disabled={applying || creating}
+                  onChange={(event) => { setCouponCode(event.target.value); setQuote(null); setError(null); }}
+                  placeholder="Enter coupon code" autoCapitalize="characters" spellCheck={false}
+                  className="min-w-0 flex-1 rounded-xl border border-forest-200 bg-white px-3 py-2 font-mono text-sm" />
+                <Button variant="outline" size="sm" onClick={applyCoupon} disabled={applying || creating || !couponCode.trim()}>
+                  {applying ? "Checking..." : "Apply"}
+                </Button>
+                {couponCode && <Button variant="ghost" size="sm" disabled={applying || creating}
+                  onClick={() => { setCouponCode(""); setQuote(null); setError(null); }}>Remove</Button>}
+              </div>
+              {quote?.couponCode && <p role="status" className="mt-2 text-sm text-forest-700">{quote.couponCode} applied. You save {formatINR(quote.discountAmount)}.</p>}
+              {couponCode.trim() && !quote && <p className="mt-2 text-xs text-ink-soft">Apply or remove your code before continuing.</p>}
+            </div>
+            <Button className="mt-8 w-full" size="lg" onClick={createOrder} disabled={creating || applying || (!!couponCode.trim() && !quote)}>
               {creating ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
               Continue to payment
               {!creating && <ArrowRight className="h-4 w-4" />}
@@ -214,9 +254,16 @@ export function CheckoutFlow({ plan, username }: { plan: Plan; username: string 
               </div>
             </div>
             <div className="mt-5 flex items-end gap-1.5 border-b border-forest-100 pb-5">
-              <span className="font-display text-3xl font-semibold text-forest-950">{formatINR(plan.price)}</span>
+              <span className="font-display text-3xl font-semibold text-forest-950">{formatINR(price.amount)}</span>
               <span className="mb-1 text-sm text-ink-soft">/ {plan.durationLabel}</span>
             </div>
+            {price.couponCode && (
+              <dl className="mt-4 space-y-2 text-sm">
+                <div className="flex justify-between"><dt>Original price</dt><dd>{formatINR(price.subtotal)}</dd></div>
+                <div className="flex justify-between gap-2 text-forest-700"><dt>Coupon: {price.couponCode}</dt><dd>−{formatINR(price.discountAmount)}</dd></div>
+                <div className="flex justify-between font-semibold"><dt>Amount to pay</dt><dd>{formatINR(price.amount)}</dd></div>
+              </dl>
+            )}
             <ul className="mt-5 space-y-2.5">
               {plan.features.map((f) => (
                 <li key={f.label} className="flex items-start gap-2 text-sm text-ink-soft">

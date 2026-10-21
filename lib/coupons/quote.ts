@@ -1,0 +1,18 @@
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { getPlan } from "@/config/plans";
+import { calculatePrice, CouponError } from "./pricing";
+
+export const checkoutSchema = z.object({
+  planSlug: z.string().min(1).max(80),
+  couponCode: z.string().trim().max(32).optional(),
+});
+
+export async function quoteOrder(input: z.infer<typeof checkoutSchema>) {
+  const plan = getPlan(input.planSlug);
+  if (!plan) throw new CouponError("Unknown plan.");
+  const code = input.couponCode?.trim().toUpperCase();
+  const coupon = code ? await prisma.coupon.findUnique({ where: { code } }) : null;
+  if (code && !coupon) throw new CouponError("Coupon code not found.");
+  return { plan, ...calculatePrice(plan, coupon) };
+}

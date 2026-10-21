@@ -1,5 +1,5 @@
 // Prisma schema for the Verdanta perks store.
-// SQLite for local/dev; swap the datasource to Postgres for production.
+// PostgreSQL for development and production.
 generator client {
   provider = "prisma-client-js"
 }
@@ -16,10 +16,22 @@ model Order {
   planSlug        String
   planName        String
   amount          Int // in the smallest currency unit is overkill for INR here; stored as whole rupees
+  subtotal        Int
+  discountAmount  Int      @default(0)
+  couponCode      String?
   currency        String   @default("INR")
   note            String   @unique // unique payment note shown to the buyer / encoded in the UPI intent
 
   status          String   @default("awaiting_payment")
+  deliveryStatus  String   @default("not_requested")
+  deliveryGuildId String?
+  deliveryRoleId  String?
+  deliveryToken   String?
+  deliveryLeaseUntil DateTime?
+  deliveryRetryAt DateTime?
+  deliveryError   String?
+  deliveredAt     DateTime?
+  deliveryAttempts Int    @default(0)
 
   // Buyer identity comes from the authenticated Discord session (never client input).
   discordUserId   String
@@ -27,7 +39,7 @@ model Order {
 
   // Payment proof (submitted after payment).
   utr             String?  @unique // 12-digit UPI reference; UNIQUE blocks reuse across orders
-  screenshotPath  String? // path under ./uploads (served via a gated route)
+  screenshotPath  String? // Base64 data URI, served via a gated route
   screenshotHash  String? // sha256 of the uploaded image, for duplicate detection
   duplicateFlag   Boolean  @default(false) // set when the same screenshot hash was seen before
 
@@ -40,4 +52,16 @@ model Order {
 
   @@index([status])
   @@index([discordUserId])
+}
+
+model Coupon {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  kind        String // percent or fixed (whole rupees)
+  value       Int
+  active      Boolean  @default(true)
+  minAmount   Int      @default(0)
+  planSlug    String?
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
 }

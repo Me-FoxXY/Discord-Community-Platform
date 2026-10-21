@@ -1,90 +1,97 @@
 # Discord Community Platform
 
-A separate successor to Discord-Package, planned for multiple Discord communities and Vercel hosting.
+A separate successor to Discord-Package. Payments remain manual: members pay through UPI, submit their UTR and screenshot, and an admin approves or rejects the payment.
 
-**Status:** this repository currently contains the original single-server application as a starting point. Multi-server features and Vercel deployment are not complete.
+## Current milestone
 
-**Payments stay manual:** buyers pay through UPI and submit their UTR and screenshot. An authorized admin verifies and approves or rejects the payment.
+The single-server purchase flow now separates payment approval from Discord role delivery:
 
-See [PLAN.md](PLAN.md) for the simple build order. Portfolio presentation is the final step.
+- Only orders with submitted proof awaiting review can be approved or rejected.
+- An approved order saves pending delivery before contacting Discord.
+- Role delivery uses Discord's role-add PUT endpoint. Repeating delivery does not create duplicate roles.
+- A database lease prevents simultaneous attempts on the same order. An interrupted attempt can be retried after 60 seconds.
+- Failed deliveries retain the approved payment and show an admin retry action with a cooldown.
+- The buyer sees role delivery separately from payment status.
 
-The inherited documentation below describes the original project and needs updating during implementation: the current schema uses PostgreSQL and payment screenshots are stored as Base64 in the database, despite the older SQLite and disk-upload descriptions.
+Only the configured plan role is automated. XP boosts, personal roles/channels, membership expiry, multi-server support, and scheduled processing are future milestones. Existing plan descriptions are inherited product content; do not launch sales until the advertised benefits are supported or fulfilled by staff.
 
----
+See [PLAN.md](PLAN.md) for the build order. Vercel is the hosting target; portfolio presentation comes last.
 
-## Original project: Verdanta — Premium Discord Perks Store
+## Coupons and payment discounts
 
-A premium, **nature-inspired** storefront for selling Discord perks and memberships, built with Next.js. Bright, fresh, and elegant — a modern SaaS feel rather than a dark neon gaming shop.
+In `/admin`, use **Coupons & discounts** to create a percentage or fixed-rupee coupon.
+Choose all plans or one plan, an optional minimum price, and an optional expiry time.
+Disable a code to stop it being used on new orders.
 
-- 🌿 Nature-premium design system (emerald / forest / sage / mint / teal / sky) with glassmorphism, soft shadows, and rich motion
-- 🎬 GIF hero banner + animated ambient backdrop (aurora, floating leaves, topography)
-- 🔐 **Real Discord OAuth** (Auth.js) — login required to purchase; orders tied to the buyer's Discord account
-- 💳 Manual **UPI checkout**: QR + UTR + screenshot, with an **admin approval queue** and **UTR de-duplication** anti-fraud
-- 🛒 Landing, Shop, per-plan product pages, Community, Checkout, Order status, Admin dashboard
-- ♿ Accessible (keyboard nav, focus rings, `prefers-reduced-motion`) and SEO-ready (metadata, sitemap, robots, JSON-LD, OG image)
+At checkout, members enter a code and select **Apply**. The summary shows the original
+price, savings, and final payable amount. The UPI link and QR use that final amount.
+The order and admin review screen retain the same price breakdown.
+Payment verification remains manual.
 
-## Tech stack
+- Codes are case-insensitive and reusable, with no redemption limit.
+- One coupon per order; discounts cannot be combined.
+- Prices currently use whole rupees. Percentage savings round down: 10% off ₹49 saves ₹4, leaving ₹45.
+- A coupon must leave at least ₹1 payable; free orders are not supported.
+- Coupons are checked again when the order is created. Disabling or expiring a coupon
+  does not change the price of an order already created.
+- Existing orders keep their original amounts when the coupon migration is applied.
+- Apply the new database migration with `npm run db:migrate` before using this feature.
 
-Next.js (App Router) · TypeScript · Tailwind CSS v4 · Framer Motion · Auth.js (NextAuth v5) · Prisma + SQLite · lucide-react · SWR · Zod.
+## Local setup
 
-## Getting started
+On this Windows workstation, run `npm run db:local` to start the isolated development
+database using the installed PostgreSQL 18 binaries. It listens only on
+`127.0.0.1:55432` and updates only `DATABASE_URL` in `.env`. Existing database services
+are not changed. Database files, generated credentials, and the original environment
+backup stay in the ignored `.local/` folder. Use `npm run db:local:stop` to stop it.
+This is a development helper; Vercel still needs a hosted PostgreSQL connection.
 
-```bash
-npm install          # installs deps + generates Prisma client
-cp .env.example .env  # then fill in values (see below)
-npm run db:push       # creates the SQLite database
-npm run dev           # http://localhost:3000
-```
+1. Install dependencies with `npm ci`.
+2. Copy `.env.example` to `.env` and supply a PostgreSQL database URL and Auth.js secret.
+3. On a **new, empty database**, run `npm run db:migrate`.
+4. Run `npm run dev`.
 
-### Environment (`.env`)
+For an existing database created with `db push`, first back it up and check that it matches the baseline migration. Mark only that baseline as applied with `npx prisma migrate resolve --applied 202610200001_baseline`, then run `npm run db:migrate`. Do not run the baseline CREATE TABLE statements against an existing Order table.
 
-| Variable | Purpose |
-| --- | --- |
-| `DATABASE_URL` | SQLite path, e.g. `file:./dev.db` |
-| `AUTH_SECRET` | Session secret — generate with `npx auth secret` |
-| `AUTH_URL` | App URL (e.g. `http://localhost:3000`) |
-| `AUTH_DISCORD_ID` / `AUTH_DISCORD_SECRET` | Discord OAuth app credentials (leave blank to use Dev Login locally) |
-| `DISCORD_GUILD_ID` | Enables the live member count (requires Server Widget enabled) |
-| `NEXT_PUBLIC_DISCORD_INVITE` | Invite link for "Join Discord" buttons |
-| `ADMIN_DISCORD_IDS` | Comma-separated Discord user ids allowed into `/admin` |
-| `NEXT_PUBLIC_UPI_ID` / `NEXT_PUBLIC_UPI_PAYEE_NAME` | UPI payee details for the QR / intent |
+Builds no longer change the database. Run migrations explicitly as a deployment step.
 
-### Discord OAuth setup
+## Discord configuration
 
-1. Create an app at <https://discord.com/developers/applications>.
-2. **OAuth2 → Redirects**, add: `http://localhost:3000/api/auth/callback/discord`.
-3. Copy the Client ID / Secret into `AUTH_DISCORD_ID` / `AUTH_DISCORD_SECRET`.
-4. Put your own Discord user id in `ADMIN_DISCORD_IDS` to access `/admin`.
+- Set `AUTH_DISCORD_ID` and `AUTH_DISCORD_SECRET` for member sign-in.
+- Add `/api/auth/callback/discord` on your local or deployed origin to the OAuth redirect URLs.
+- Set `ADMIN_DISCORD_IDS` to the IDs of trusted reviewers.
+- Set `DISCORD_GUILD_ID`, `DISCORD_BOT_TOKEN`, and each plan's `DISCORD_ROLE_*` variable.
+- Install the bot in that server with Manage Roles. Its highest role must be above the roles it grants.
+- The buyer must already be a member of the server.
+- Keep the bot token private; never use a NEXT_PUBLIC variable for it.
 
-**Dev Login:** with no Discord credentials set (and in development), a mock "Dev Login" is available on `/login` so you can test the login-gated checkout and admin flows immediately. Its user id is `000000000000000000` (already in the sample `ADMIN_DISCORD_IDS`).
+Development login works only with `NODE_ENV=development`. Its mock identity cannot receive real Discord roles. Use a real Discord login for an end-to-end role delivery test.
 
-## How the payment flow works
+Role targets are saved on the first configured delivery attempt and reused on retries. Changing the environment afterwards does not silently redirect an existing attempt to a different role or server.
 
-1. A logged-in buyer picks a plan → an order is created, tied to their Discord id (from the server session — not client input).
-2. They pay via UPI (QR / UPI ID) and submit their **12-digit UTR** + a **screenshot**.
-3. The order enters **`pending_review`** and appears in **`/admin`**.
-4. An admin views the screenshot and **approves/rejects**. Only on approval are perks granted (see the `onOrderApproved` hook in `lib/orders/store.ts`).
+## Verification checklist
 
-**Anti-fraud:** the `utr` column is unique, so a payment reference can never be re-used across orders; a re-used screenshot (same hash) flags the order. Manual screenshot flows can't be made 100% fraud-proof — for full elimination, wire the `RazorpayProvider` (`lib/payments/provider.ts`) for server-verified confirmation.
+Run `npm test` for automated tests, `npm run typecheck` for TypeScript checks, and `npm run build` for the production build. The build downloads Google Fonts and needs network access. No database migration runs during the build.
 
-## Project structure
+- Submit proof, approve once, and verify the role in Discord.
+- Try reviewing the same order again: expect HTTP 409.
+- Reject a different order: no role delivery should happen.
+- Remove bot permissions: payment stays approved, delivery fails visibly.
+- Restore permissions and retry after cooldown: role delivery succeeds.
+- Confirm that another buyer cannot view the order or screenshot.
 
-```
-app/            routes: landing, shop, shop/[slug], community, checkout, order/[id], admin, login, legal, api/*
-components/     ui/ (primitives) · sections/ · layout/ · shop/ · admin/ · order/ · decor/ · icons/
-config/         site.ts · plans.ts · content.ts   ← single source of truth for branding/content
-lib/            auth · orders/store · payments/provider · qr · motion · utils · prisma
-prisma/         schema.prisma (Order model)
-```
+`npm test` runs the fast mocked tests. `npm run test:integration` applies migrations
+to the isolated `discord_community_test` database and tests real database writes,
+discounted checkout, manual proof review, concurrent approvals, delivery leases,
+and UTR uniqueness. The integration runner never uses the application database URL
+from `.env`, and removes only records created by that test run. Discord calls and
+authentication are simulated; actual Discord OAuth and role delivery still require
+configured credentials and a live test.
 
-## Going to production
+The role integration follows Discord's [Add Guild Member Role](https://docs.discord.com/developers/resources/guild#add-guild-member-role) endpoint and [rate-limit responses](https://docs.discord.com/developers/topics/rate-limits).
 
-- **Database:** swap the Prisma datasource from SQLite to Postgres.
-- **Uploads:** screenshots are stored on local disk under `./uploads` and served via a gated route. Move to object storage (S3/R2) with signed URLs.
-- **Payments:** implement `RazorpayProvider` for server-verified UPI/card payments to remove manual verification.
-- **Perks:** implement the `onOrderApproved` hook to call your Discord bot and assign roles/perks.
-- Replace placeholder branding in `config/*` and the hero GIF in `public/hero-banner.gif`.
+## Hosting and remaining work
 
-## Scripts
+Use a Vercel server deployment and hosted PostgreSQL, not GitHub Pages. Current payment screenshots are Base64 data in PostgreSQL behind an authenticated route; private object storage is planned. Current retries are admin-triggered, not a scheduled worker. Cross-order/global Discord throttling is still needed before scaling delivery to multiple communities.
 
-`npm run dev` · `npm run build` · `npm run start` · `npm run db:push` · `npm run db:studio`
+No GitHub publication or Vercel deployment has happened yet.

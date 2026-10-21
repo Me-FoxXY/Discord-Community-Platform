@@ -5,11 +5,17 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && prisma db push && next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
+    "db:migrate": "prisma migrate deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:integration": "node scripts/test-integration.mjs",
+    "db:local": "pwsh -NoProfile -File scripts/local-db.ps1",
+    "db:local:stop": "pwsh -NoProfile -File scripts/local-db.ps1 -Action stop",
     "db:studio": "prisma studio"
   },
   "dependencies": {
@@ -34,6 +40,7 @@
     "@types/react-dom": "^19",
     "prisma": "^5.20.0",
     "tailwindcss": "^4.0.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.7"
   }
 }
