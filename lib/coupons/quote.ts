@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getPlan } from "@/config/plans";
+import { getPlan } from "@/lib/catalog";
 import { calculatePrice, CouponError } from "./pricing";
 
 export const checkoutSchema = z.object({
@@ -9,7 +9,7 @@ export const checkoutSchema = z.object({
 });
 
 export async function quoteOrder(input: z.infer<typeof checkoutSchema>) {
-  const plan = getPlan(input.planSlug);
+  const plan = await getPlan(input.planSlug);
   if (!plan) throw new CouponError("Unknown plan.");
   const code = input.couponCode?.trim().toUpperCase();
   const coupon = code ? await prisma.coupon.findUnique({ where: { code } }) : null;

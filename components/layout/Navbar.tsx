@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 
 export function Navbar() {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const user = session?.user;
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -88,7 +88,7 @@ export function Navbar() {
               <DiscordIcon className="h-5 w-5" />
             </a>
 
-            {user ? (
+            {status === "loading" ? (<span role="status" aria-label="Loading account" className="h-9 w-24 animate-pulse rounded-full bg-forest-100" />) : user ? (
               <div className="relative hidden md:block">
                 <button
                   type="button"
@@ -189,7 +189,7 @@ export function Navbar() {
                 ))}
               </div>
               <div className="mt-2 flex flex-col gap-2 border-t border-forest-100 pt-3">
-                {user ? (
+                {status === "loading" ? (<span role="status" aria-label="Loading account" className="h-9 w-24 animate-pulse rounded-full bg-forest-100" />) : user ? (
                   <>
                     <div className="flex items-center gap-2 px-2">
                       <Avatar image={user.image} initials={initials} />

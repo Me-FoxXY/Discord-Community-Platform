@@ -4,7 +4,7 @@ import { DiscordIcon, XIcon, YoutubeIcon, InstagramIcon } from "@/components/ico
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { site, navLinks } from "@/config/site";
-import { plans } from "@/config/plans";
+import { listProducts } from "@/lib/catalog";
 import type { SocialPlatform } from "@/config/site";
 import type { ComponentType, SVGProps } from "react";
 
@@ -15,7 +15,8 @@ const socialIcon: Record<SocialPlatform, ComponentType<SVGProps<SVGSVGElement>>>
   instagram: InstagramIcon,
 };
 
-export function Footer() {
+export async function Footer() {
+  const plans = await listProducts();
   const year = new Date().getFullYear();
   return (
     <footer className="relative mt-24 overflow-hidden border-t border-forest-100 bg-white/50">

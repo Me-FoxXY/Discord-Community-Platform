@@ -9,6 +9,8 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { CouponManager } from "@/components/admin/CouponManager";
+import { StoreManager } from "@/components/admin/StoreManager";
+import { listProducts } from "@/lib/catalog";
 
 export const metadata: Metadata = {
   title: "Admin",
@@ -43,6 +45,7 @@ export default async function AdminPage() {
   if (!session?.user?.isAdmin) redirect("/login");
   const [pending, recent] = await Promise.all([listPending(), listRecent(50)]);
   const coupons = await prisma.coupon.findMany({ orderBy: { createdAt: "desc" } });
+  const [products, settings] = await Promise.all([listProducts(true), prisma.storeSettings.findUnique({ where: { id: 'default' } })]);
 
   return (
     <main className="relative min-h-dvh overflow-hidden pb-24 pt-32 sm:pt-36">
@@ -60,7 +63,8 @@ export default async function AdminPage() {
 
         <div className="mt-10">
           <AdminBoard initialPending={pending.map(toDTO)} initialRecent={recent.map(toDTO)} />
-          <CouponManager initial={coupons.map((coupon) => ({ ...coupon, expiresAt: coupon.expiresAt?.toISOString() ?? null, createdAt: undefined }))} />
+          <StoreManager products={products} primaryColor={settings?.primaryColor ?? '#2f855a'} accentColor={settings?.accentColor ?? '#14a5a0'} />
+          <CouponManager plans={products} initial={coupons.map((coupon) => ({ ...coupon, expiresAt: coupon.expiresAt?.toISOString() ?? null, createdAt: undefined }))} />
         </div>
       </Container>
     </main>

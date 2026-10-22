@@ -6,6 +6,9 @@ import { Footer } from "@/components/layout/Footer";
 import { PageBackdrop } from "@/components/decor/nature";
 import { site } from "@/config/site";
 import "./globals.css";
+import { prisma } from '@/lib/prisma';
+import { themeVariables } from '@/lib/theme';
+import { Suspense } from 'react';
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
@@ -36,9 +39,10 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const settings = await prisma.storeSettings.findUnique({ where: { id: 'default' } });
   return (
-    <html lang="en" className={`${fraunces.variable} ${jakarta.variable}`}>
+    <html lang="en" style={themeVariables(settings?.primaryColor, settings?.accentColor)} className={`${fraunces.variable} ${jakarta.variable}`}>
       <body className="min-h-dvh antialiased">
         <Providers>
           <a
@@ -50,10 +54,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <PageBackdrop />
           <Navbar />
           <div className="flex min-h-dvh flex-col">
-            <main id="main" className="flex-1">
+            <div id="main" className="flex-1">
               {children}
-            </main>
-            <Footer />
+            </div>
+            <Suspense fallback={<div className="h-24" />}><Footer /></Suspense>
           </div>
         </Providers>
       </body>

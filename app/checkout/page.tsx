@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { getPlan } from "@/config/plans";
+import { getPlan } from "@/lib/catalog";
 import { Container } from "@/components/ui/Container";
 import { CheckoutFlow } from "@/components/shop/CheckoutFlow";
 import { GradientBlobs } from "@/components/decor/nature";
@@ -17,7 +17,7 @@ export default async function CheckoutPage({
   searchParams: Promise<{ plan?: string }>;
 }) {
   const { plan: slug } = await searchParams;
-  const plan = slug ? getPlan(slug) : undefined;
+  const plan = slug ? await getPlan(slug) : undefined;
   if (!plan) redirect("/shop");
 
   // Middleware already guards this route, but re-check for safety.

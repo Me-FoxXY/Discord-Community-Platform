@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getPlan } from "@/config/plans";
+import { getPlan } from "@/lib/catalog";
 
 const schema = z.object({
   code: z.string().trim().toUpperCase().regex(/^[A-Z0-9_-]{3,32}$/, "Use 3–32 letters, numbers, hyphens or underscores."),
@@ -20,7 +20,7 @@ export async function POST(req: Request) {
   if (!session?.user?.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
-  if (parsed.data.planSlug && !getPlan(parsed.data.planSlug)) {
+  if (parsed.data.planSlug && !(await getPlan(parsed.data.planSlug))) {
     return NextResponse.json({ error: "Unknown plan." }, { status: 400 });
   }
   const expiresAt = parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null;

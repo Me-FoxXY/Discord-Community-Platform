@@ -1,5 +1,7 @@
 "use client";
 
+import useSWR from "swr";
+import { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Sparkles, Star } from "lucide-react";
 import { DiscordIcon } from "@/components/icons/brands";
@@ -23,7 +25,7 @@ export function Hero() {
           {/* Copy */}
           <motion.div
             variants={staggerContainer(0.12, 0.05)}
-            initial={reduce ? false : "hidden"}
+            initial={false}
             animate="visible"
           >
             <motion.div variants={fadeInUp}>
@@ -77,6 +79,9 @@ export function Hero() {
 }
 
 function HeroBanner({ reduce }: { reduce: boolean }) {
+  const { data } = useSWR<{url: string | null; staticUrl?: string | null}>("/api/discord/banner", async url => { const response = await fetch(url); if (!response.ok) throw new Error("Banner unavailable"); return response.json(); }, { refreshInterval: 300000, revalidateOnFocus: false, shouldRetryOnError: false });
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const source = (reduce ? data?.staticUrl : data?.url) ?? null;
   const floatA = reduce
     ? {}
     : { animate: { y: [0, -10, 0] }, transition: { duration: 6, repeat: Infinity, ease: "easeInOut" as const } };
@@ -89,12 +94,14 @@ function HeroBanner({ reduce }: { reduce: boolean }) {
       <div aria-hidden className="absolute -inset-6 -z-10 rounded-[3rem] bg-river opacity-25 blur-3xl" />
 
       <div className="relative overflow-hidden rounded-5xl border border-white/60 bg-white/40 p-2.5 shadow-glow backdrop-blur">
-        {reduce ? (
-          <div className="aspect-[4/3] w-full rounded-[2rem] bg-river" />
+        {!source || failedUrl === source ? (
+          <div className="grid aspect-[4/3] w-full place-items-center rounded-[2rem] bg-river p-8 text-center"><span className="font-display text-3xl font-semibold text-white drop-shadow">Your community, your space.</span></div>
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={site.heroGif}
+            src={source}
+            onError={() => setFailedUrl(source)}
+            fetchPriority="high"
             alt=""
             aria-hidden
             className="aspect-[4/3] w-full rounded-[2rem] object-cover"

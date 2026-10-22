@@ -13,7 +13,7 @@ export function LiveMemberCount({ className }: { className?: string }) {
     revalidateOnFocus: false,
   });
 
-  const online = data?.online ?? 3100;
+  const online = data?.source === "live" ? data.online : null;
 
   return (
     <span className={className}>
@@ -21,8 +21,8 @@ export function LiveMemberCount({ className }: { className?: string }) {
         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400 opacity-75" />
         <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-mint-500" />
       </span>
-      <span className="font-semibold text-forest-900">{formatCompact(online)}</span>
-      <span className="text-ink-soft"> online now</span>
+      <span className="font-semibold text-forest-900">{online === null ? "Join our community" : formatCompact(online)}</span>
+      {online !== null && <span className="text-ink-soft"> online now</span>}
     </span>
   );
 }
