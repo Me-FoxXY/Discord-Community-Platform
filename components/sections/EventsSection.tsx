@@ -14,6 +14,7 @@ const accentChip: Record<CommunityEvent["accent"], string> = {
 };
 
 export function EventsSection() {
+  if (!events.length) return null;
   return (
     <section className="py-20 sm:py-28">
       <Container>

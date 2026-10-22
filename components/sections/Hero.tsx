@@ -7,10 +7,10 @@ import { ArrowRight, Sparkles, Star } from "lucide-react";
 import { DiscordIcon } from "@/components/icons/brands";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
-import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
-import { LiveMemberCount } from "@/components/community/LiveMemberCount";
+
+import { MemberStats, LiveMemberCount } from "@/components/community/LiveMemberCount";
 import { FloatingLeaves } from "@/components/decor/nature";
-import { heroStats } from "@/config/content";
+
 import { site } from "@/config/site";
 import { fadeInUp, staggerContainer } from "@/lib/motion";
 
@@ -58,16 +58,7 @@ export function Hero() {
               </Button>
             </motion.div>
 
-            <motion.div variants={fadeInUp} className="mt-12 grid max-w-lg grid-cols-3 gap-6">
-              {heroStats.map((s) => (
-                <div key={s.key}>
-                  <div className="font-display text-3xl font-semibold text-forest-900 sm:text-4xl">
-                    <AnimatedCounter value={s.value} compact={s.compact} suffix={s.suffix ?? "+"} />
-                  </div>
-                  <div className="mt-1 text-sm text-ink-soft">{s.label}</div>
-                </div>
-              ))}
-            </motion.div>
+            <motion.div variants={fadeInUp} className="mt-12 max-w-lg"><MemberStats /></motion.div>
           </motion.div>
 
           {/* Media — the provided GIF banner */}
@@ -79,9 +70,10 @@ export function Hero() {
 }
 
 function HeroBanner({ reduce }: { reduce: boolean }) {
-  const { data } = useSWR<{url: string | null; staticUrl?: string | null}>("/api/discord/banner", async url => { const response = await fetch(url); if (!response.ok) throw new Error("Banner unavailable"); return response.json(); }, { refreshInterval: 300000, revalidateOnFocus: false, shouldRetryOnError: false });
+  const { data } = useSWR<{url: string | null; staticUrl?: string | null}>("/api/discord/banner", async url => { const response = await fetch(url); if (!response.ok) throw new Error("Banner unavailable"); return response.json(); }, { refreshInterval: 60000, revalidateOnFocus: false, shouldRetryOnError: false });
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const source = (reduce ? data?.staticUrl : data?.url) ?? null;
+  const fallback = !source || failedUrl === source;
   const floatA = reduce
     ? {}
     : { animate: { y: [0, -10, 0] }, transition: { duration: 6, repeat: Infinity, ease: "easeInOut" as const } };
@@ -94,8 +86,11 @@ function HeroBanner({ reduce }: { reduce: boolean }) {
       <div aria-hidden className="absolute -inset-6 -z-10 rounded-[3rem] bg-river opacity-25 blur-3xl" />
 
       <div className="relative overflow-hidden rounded-5xl border border-white/60 bg-white/40 p-2.5 shadow-glow backdrop-blur">
-        {!source || failedUrl === source ? (
-          <div className="grid aspect-[4/3] w-full place-items-center rounded-[2rem] bg-river p-8 text-center"><span className="font-display text-3xl font-semibold text-white drop-shadow">Your community, your space.</span></div>
+        {fallback ? (
+          <div className="relative grid aspect-[4/3] w-full place-items-center overflow-hidden rounded-[2rem] bg-river">
+            <img src={reduce ? site.heroPoster : site.heroGif} alt={`${site.name} — ${site.tagline}`} className="absolute inset-0 h-full w-full object-cover" />
+
+          </div>
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -122,9 +117,9 @@ function HeroBanner({ reduce }: { reduce: boolean }) {
         </span>
         <div className="leading-tight">
           <div className="text-sm font-bold text-forest-900">
-            <AnimatedCounter value={24800} compact suffix="+" />
+            <LiveMemberCount />
           </div>
-          <div className="text-xs text-ink-soft">happy members</div>
+          <div className="text-xs text-ink-soft">Connect on Discord</div>
         </div>
       </motion.div>
 
@@ -136,8 +131,8 @@ function HeroBanner({ reduce }: { reduce: boolean }) {
           <Star className="h-4 w-4 fill-current" />
         </span>
         <div className="leading-tight">
-          <div className="text-sm font-bold text-forest-900">4.9 / 5</div>
-          <div className="text-xs text-ink-soft">member rating</div>
+          <div className="text-sm font-bold text-forest-900">Your community</div>
+          <div className="text-xs text-ink-soft">Make it yours</div>
         </div>
       </motion.div>
     </div>

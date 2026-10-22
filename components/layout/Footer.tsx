@@ -26,7 +26,7 @@ export async function Footer() {
           <div aria-hidden className="pointer-events-none absolute inset-0 opacity-20 [background:radial-gradient(60%_120%_at_50%_-10%,white,transparent)]" />
           <h2 className="relative text-3xl text-white sm:text-4xl">Ready to grow with us?</h2>
           <p className="relative mx-auto mt-3 max-w-xl text-mint-50/90">
-            Join thousands of members in the friendliest corner of Discord — then make it yours with premium perks.
+            Join our community in the friendliest corner of Discord — then make it yours with premium perks.
           </p>
           <div className="relative mt-7 flex flex-wrap justify-center gap-3">
             <Button href={site.discordInvite} variant="glass" size="lg">

@@ -24,7 +24,8 @@ export const site = {
   // Brand assets (placeholders live in /public).
   logo: "/logo.svg",
   ogImage: "/og.png",
-  heroGif: "/hero-banner.gif",
+  heroGif: "/verdanta-default.gif",
+  heroPoster: "/verdanta-default.png",
 
   // Discord
   discordInvite: process.env.NEXT_PUBLIC_DISCORD_INVITE ?? "https://discord.gg/your-invite",

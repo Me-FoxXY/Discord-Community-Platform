@@ -1,4 +1,5 @@
 "use client";
+import { DiscordStatus } from './DiscordStatus';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { CatalogPlan } from '@/lib/catalog';
@@ -65,7 +66,8 @@ export function StoreManager({ products, primaryColor, accentColor }: { products
       })}</div>
       <div style={isColor(primary) && isColor(accent) ? themeVariables(primary, accent) : undefined} className="my-4 rounded-2xl bg-mist p-5"><span className="rounded-full bg-forest-grad px-4 py-2 text-sm text-white">Theme preview</span><p className="mt-4 text-sm text-forest-900">Color shades are adjusted for readable buttons and text.</p></div>
       <Button onClick={saveTheme} disabled={busy || !isColor(primary) || !isColor(accent)}>Save colors</Button>
-      <p className="mt-4 text-sm text-ink-soft">The home banner automatically uses this Discord server's banner, refreshed within about five minutes. If unavailable, a theme-colored placeholder is shown.</p>
+      <p className="mt-4 text-sm text-ink-soft">The home banner uses this Discord server's banner. If unavailable, the default GIF displays your brand name.</p>
+      <DiscordStatus />
     </div>
   </section>;
 }
