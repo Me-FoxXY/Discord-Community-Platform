@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Preserve the incoming origin for tenant rewrites, including local IP hosts.
+  skipMiddlewareUrlNormalize: true,
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "cdn.discordapp.com" },

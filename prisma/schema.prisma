@@ -12,6 +12,10 @@ datasource db {
 // A purchase order. Lifecycle:
 //   awaiting_payment -> pending_review -> approved | rejected
 model Order {
+  serverId        String @default("default")
+  server          Server @relation(fields: [serverId], references: [id], onDelete: Restrict)
+  paymentUpiId    String?
+  paymentPayee    String?
   id              String   @id @default(cuid())
   planSlug        String
   planName        String
@@ -52,11 +56,14 @@ model Order {
 
   @@index([status])
   @@index([discordUserId])
+  @@index([serverId, status, createdAt])
 }
 
 model Coupon {
+  serverId    String @default("default")
+  server      Server @relation(fields: [serverId], references: [id], onDelete: Restrict)
   id          String   @id @default(cuid())
-  code        String   @unique
+  code        String
   kind        String // percent or fixed (whole rupees)
   value       Int
   active      Boolean  @default(true)
@@ -64,19 +71,88 @@ model Coupon {
   planSlug    String?
   expiresAt   DateTime?
   createdAt   DateTime @default(now())
+  @@unique([serverId, code])
 }
 
 model Product {
-  slug String @id
+  serverId String @default("default")
+  server Server @relation(fields: [serverId], references: [id], onDelete: Restrict)
+  slug String
   data Json
   enabled Boolean @default(true)
   roleId String?
   updatedAt DateTime @updatedAt
+  @@id([serverId, slug])
 }
 
 model StoreSettings {
+  serverId String @unique @default("default")
+  server Server @relation(fields: [serverId], references: [id], onDelete: Restrict)
   id String @id @default("default")
   primaryColor String @default("#2f855a")
   accentColor String @default("#14a5a0")
   updatedAt DateTime @updatedAt
+}
+
+model Server {
+  id String @id @default(cuid())
+  guildId String? @unique
+  name String
+  icon String?
+  inviteUrl String @default("")
+  upiId String @default("")
+  payeeName String @default("")
+  botKey String @default("shared")
+  status String @default("active")
+  version Int @default(1)
+  createdBy String
+  updatedBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders Order[]
+  products Product[]
+  coupons Coupon[]
+  settings StoreSettings?
+  access ServerAccess[]
+  audit AuditEvent[]
+}
+
+model ServerAccess {
+  serverId String
+  userId String
+  role String
+  grantedBy String
+  updatedAt DateTime @updatedAt
+  server Server @relation(fields: [serverId], references: [id], onDelete: Restrict)
+  @@id([serverId, userId])
+  @@index([userId])
+}
+
+model PlatformAccess {
+  userId String @id
+  role String // administrator or registrar
+  updatedAt DateTime @updatedAt
+}
+
+model DiscordAuthorization {
+  userId String @id
+  credentials String // authenticated encryption, never returned to clients
+  expiresAt DateTime
+  updatedAt DateTime @updatedAt
+}
+
+model AuditEvent {
+  id String @id @default(cuid())
+  serverId String?
+  server Server? @relation(fields: [serverId], references: [id], onDelete: Restrict)
+  actorId String
+  action String
+  outcome String
+  createdAt DateTime @default(now())
+  @@index([serverId, createdAt])
+}
+
+model DiscordRateGate {
+  id String @id
+  nextAt DateTime
 }

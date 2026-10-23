@@ -1,0 +1,1 @@
+CREATE TABLE "DiscordRateGate" ("id" TEXT PRIMARY KEY, "nextAt" TIMESTAMP(3) NOT NULL);

@@ -1,3 +1,7 @@
+import { apiHandler } from "@/lib/servers/errors";
+import { currentServer } from "@/lib/servers/context";
+import { ServerError } from "@/lib/servers/errors";
+import { discordRequest, validateBot } from "@/lib/servers/discord";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { checkoutSchema, quoteOrder } from "@/lib/coupons/quote";
@@ -10,12 +14,26 @@ import { site } from "@/config/site";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const session = await auth();
   if (!session?.user?.discordId) {
-    return NextResponse.json({ error: "You must be signed in to purchase." }, { status: 401 });
+    return NextResponse.json(
+      { error: "You must be signed in to purchase." },
+      { status: 401 },
+    );
   }
 
+  const server = await currentServer();
+  if (
+    server.status !== "active" ||
+    !server.guildId ||
+    !server.upiId ||
+    !server.payeeName
+  )
+    throw new ServerError("This store is not ready for purchases.", 409);
+  await discordRequest(
+    `/guilds/${server.guildId}/members/${session.user.discordId}`,
+  );
   const body = await req.json().catch(() => null);
   const parsed = checkoutSchema.safeParse(body);
   if (!parsed.success) {
@@ -26,10 +44,14 @@ export async function POST(req: Request) {
   try {
     quote = await quoteOrder(parsed.data);
   } catch (error) {
-    if (error instanceof CouponError) return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error instanceof CouponError)
+      return NextResponse.json({ error: error.message }, { status: 400 });
     throw error;
   }
   const { plan } = quote;
+  if (!plan.roleId)
+    throw new ServerError("This product is not ready for purchase.", 409);
+  await validateBot(server.guildId, plan.roleId);
 
   const order = await createOrder({
     planSlug: plan.slug,
@@ -43,7 +65,12 @@ export async function POST(req: Request) {
     discordUsername: session.user.name ?? "Unknown",
   });
 
-  const upiIntent = buildUpiIntent({ amount: order.amount, note: order.note });
+  const upiIntent = buildUpiIntent({
+    amount: order.amount,
+    note: order.note,
+    upiId: order.paymentUpiId!,
+    payeeName: order.paymentPayee!,
+  });
   const svg = await qrSvg(upiIntent);
 
   return NextResponse.json({
@@ -53,9 +80,11 @@ export async function POST(req: Request) {
     discountAmount: order.discountAmount,
     couponCode: order.couponCode,
     note: order.note,
-    upiId: site.upi.id,
-    payeeName: site.upi.payeeName,
+    upiId: order.paymentUpiId,
+    payeeName: order.paymentPayee,
     upiIntent,
     qrSvg: svg,
   });
 }
+
+export const POST = apiHandler(handlePOST);

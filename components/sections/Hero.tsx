@@ -1,6 +1,8 @@
 "use client";
+import { useCommunity } from "@/components/servers/Community";
+import { communityFetch } from "@/components/servers/Community";
 
-import useSWR from "swr";
+import { useCommunitySWR as useSWR } from "@/components/servers/Community";
 import { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Sparkles, Star } from "lucide-react";
@@ -9,13 +11,22 @@ import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
 import { NatureBanner } from "./NatureBanner";
 
-import { MemberStats, LiveMemberCount } from "@/components/community/LiveMemberCount";
+import {
+  MemberStats,
+  LiveMemberCount,
+} from "@/components/community/LiveMemberCount";
 import { FloatingLeaves } from "@/components/decor/nature";
 
-import { site } from "@/config/site";
+import { site as defaults } from "@/config/site";
 import { fadeInUp, staggerContainer } from "@/lib/motion";
 
 export function Hero() {
+  const community = useCommunity();
+  const site = {
+    ...defaults,
+    name: community.name,
+    discordInvite: community.inviteUrl || "/servers",
+  };
   const reduce = useReducedMotion();
 
   return (
@@ -39,7 +50,8 @@ export function Hero() {
               variants={fadeInUp}
               className="mt-6 text-balance text-5xl leading-[1.03] text-forest-950 sm:text-6xl lg:text-7xl"
             >
-              A greener place to <span className="text-gradient">belong</span> on Discord.
+              A greener place to <span className="text-gradient">belong</span>{" "}
+              on Discord.
             </motion.h1>
 
             <motion.p
@@ -49,7 +61,10 @@ export function Hero() {
               {site.shortPitch}
             </motion.p>
 
-            <motion.div variants={fadeInUp} className="mt-8 flex flex-wrap gap-3">
+            <motion.div
+              variants={fadeInUp}
+              className="mt-8 flex flex-wrap gap-3"
+            >
               <Button href={site.discordInvite} variant="primary" size="lg">
                 <DiscordIcon className="h-5 w-5" /> Join Discord
               </Button>
@@ -59,7 +74,9 @@ export function Hero() {
               </Button>
             </motion.div>
 
-            <motion.div variants={fadeInUp} className="mt-12 max-w-lg"><MemberStats /></motion.div>
+            <motion.div variants={fadeInUp} className="mt-12 max-w-lg">
+              <MemberStats />
+            </motion.div>
           </motion.div>
 
           {/* Discord artwork takes priority over the branded forest film. */}
@@ -71,20 +88,52 @@ export function Hero() {
 }
 
 function HeroBanner({ reduce }: { reduce: boolean }) {
-  const { data, isLoading } = useSWR<{url: string | null; staticUrl?: string | null}>("/api/discord/banner", async url => { const response = await fetch(url); if (!response.ok) throw new Error("Banner unavailable"); return response.json(); }, { refreshInterval: 60000, revalidateOnFocus: false, shouldRetryOnError: false });
+  const { data, isLoading } = useSWR<{
+    url: string | null;
+    staticUrl?: string | null;
+  }>(
+    "/api/discord/banner",
+    async (url) => {
+      const response = await communityFetch(url);
+      if (!response.ok) throw new Error("Banner unavailable");
+      return response.json();
+    },
+    {
+      refreshInterval: 60000,
+      revalidateOnFocus: false,
+      shouldRetryOnError: false,
+    },
+  );
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const source = (reduce ? data?.staticUrl : data?.url) ?? null;
   const fallback = !source || failedUrl === source;
   const floatA = reduce
     ? {}
-    : { animate: { y: [0, -10, 0] }, transition: { duration: 6, repeat: Infinity, ease: "easeInOut" as const } };
+    : {
+        animate: { y: [0, -10, 0] },
+        transition: {
+          duration: 6,
+          repeat: Infinity,
+          ease: "easeInOut" as const,
+        },
+      };
   const floatB = reduce
     ? {}
-    : { animate: { y: [0, 12, 0] }, transition: { duration: 7, repeat: Infinity, ease: "easeInOut" as const } };
+    : {
+        animate: { y: [0, 12, 0] },
+        transition: {
+          duration: 7,
+          repeat: Infinity,
+          ease: "easeInOut" as const,
+        },
+      };
 
   return (
     <div className="relative mx-auto w-full max-w-xl">
-      <div aria-hidden className="absolute -inset-6 -z-10 rounded-[3rem] bg-river opacity-25 blur-3xl" />
+      <div
+        aria-hidden
+        className="absolute -inset-6 -z-10 rounded-[3rem] bg-river opacity-25 blur-3xl"
+      />
 
       <div className="relative overflow-hidden rounded-5xl border border-white/60 bg-white/40 p-2.5 shadow-glow backdrop-blur">
         {fallback ? (
@@ -129,7 +178,9 @@ function HeroBanner({ reduce }: { reduce: boolean }) {
           <Star className="h-4 w-4 fill-current" />
         </span>
         <div className="leading-tight">
-          <div className="text-sm font-bold text-forest-900">Your community</div>
+          <div className="text-sm font-bold text-forest-900">
+            Your community
+          </div>
           <div className="text-xs text-ink-soft">Make it yours</div>
         </div>
       </motion.div>

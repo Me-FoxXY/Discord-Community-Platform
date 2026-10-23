@@ -8,13 +8,23 @@ export interface PaymentProvider {
   id: string;
 }
 
-export type UpiIntentInput = { amount: number; note: string };
+export type UpiIntentInput = {
+  amount: number;
+  note: string;
+  upiId?: string;
+  payeeName?: string;
+};
 
 /** Build a `upi://pay` deep link / QR payload. */
-export function buildUpiIntent({ amount, note }: UpiIntentInput): string {
+export function buildUpiIntent({
+  amount,
+  note,
+  upiId,
+  payeeName,
+}: UpiIntentInput): string {
   const params = new URLSearchParams({
-    pa: site.upi.id,
-    pn: site.upi.payeeName,
+    pa: upiId ?? site.upi.id,
+    pn: payeeName ?? site.upi.payeeName,
     am: String(amount),
     cu: "INR",
     tn: note,

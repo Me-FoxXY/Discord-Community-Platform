@@ -1,18 +1,24 @@
+import { apiHandler } from "@/lib/servers/errors";
+import { requireAccess } from "@/lib/servers/access";
+import { currentServerId } from "@/lib/servers/context";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { deliverOrder, DeliveryConflictError } from "@/lib/orders/delivery";
 
 export const runtime = "nodejs";
 
-export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+async function handlePOST(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const session = await auth();
-  if (!session?.user?.isAdmin || !session.user.discordId) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  await requireAccess("review");
   try {
     const order = await deliverOrder((await params).id);
     return NextResponse.json({
-      ok: true, status: order.status, deliveryStatus: order.deliveryStatus,
+      ok: true,
+      status: order.status,
+      deliveryStatus: order.deliveryStatus,
       deliveryError: order.deliveryError,
     });
   } catch (error) {
@@ -22,3 +28,5 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     throw error;
   }
 }
+
+export const POST = apiHandler(handlePOST);

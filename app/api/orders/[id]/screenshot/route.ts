@@ -1,3 +1,5 @@
+import { apiHandler } from "@/lib/servers/errors";
+import { requireAccess } from "@/lib/servers/access";
 import { NextResponse } from "next/server";
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -15,19 +17,23 @@ const TYPES: Record<string, string> = {
 };
 
 // Screenshots are private: only the order owner or an admin may view them.
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+async function handleGET(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const { id } = await params;
   const session = await auth();
   const order = await getOrder(id);
-  if (!order?.screenshotPath) return new NextResponse("Not found", { status: 404 });
+  if (!order?.screenshotPath)
+    return new NextResponse("Not found", { status: 404 });
 
   const isOwner = session?.user?.discordId === order.discordUserId;
-  if (!isOwner && !session?.user?.isAdmin) {
-    return new NextResponse("Forbidden", { status: 403 });
-  }
+  if (!isOwner) await requireAccess("review", order.serverId, true);
 
   // Extract the Base64 data and mime type from the data URI
-  const match = order.screenshotPath.match(/^data:(image\/[a-zA-Z]+);base64,(.+)$/);
+  const match = order.screenshotPath.match(
+    /^data:(image\/[a-zA-Z]+);base64,(.+)$/,
+  );
   if (!match) return new NextResponse("Not found", { status: 404 });
 
   const contentType = match[1];
@@ -41,3 +47,5 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     },
   });
 }
+
+export const GET = apiHandler(handleGET);

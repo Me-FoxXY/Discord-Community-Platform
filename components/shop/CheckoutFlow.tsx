@@ -1,4 +1,6 @@
 "use client";
+import { scopePath, useCommunity } from "@/components/servers/Community";
+import { communityFetch } from "@/components/servers/Community";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -30,8 +32,15 @@ type OrderData = {
   qrSvg: string;
 };
 
-export function CheckoutFlow({ plan, username }: { plan: Plan; username: string }) {
+export function CheckoutFlow({
+  plan,
+  username,
+}: {
+  plan: Plan;
+  username: string;
+}) {
   const router = useRouter();
+  const community = useCommunity();
   const [step, setStep] = useState<"review" | "pay">("review");
   const [order, setOrder] = useState<OrderData | null>(null);
   const [creating, setCreating] = useState(false);
@@ -42,34 +51,50 @@ export function CheckoutFlow({ plan, username }: { plan: Plan; username: string 
   const [copied, setCopied] = useState<string | null>(null);
   const [couponCode, setCouponCode] = useState("");
   const [applying, setApplying] = useState(false);
-  const [quote, setQuote] = useState<Pick<OrderData, "amount" | "subtotal" | "discountAmount" | "couponCode"> | null>(null);
-  const price = order ?? quote ?? { amount: plan.price, subtotal: plan.price, discountAmount: 0, couponCode: null };
+  const [quote, setQuote] = useState<Pick<
+    OrderData,
+    "amount" | "subtotal" | "discountAmount" | "couponCode"
+  > | null>(null);
+  const price = order ??
+    quote ?? {
+      amount: plan.price,
+      subtotal: plan.price,
+      discountAmount: 0,
+      couponCode: null,
+    };
 
   async function applyCoupon() {
     setApplying(true);
     setError(null);
     setQuote(null);
     try {
-      const response = await fetch("/api/orders/quote", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+      const response = await communityFetch("/api/orders/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ planSlug: plan.slug, couponCode }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "Could not apply coupon.");
+      if (!response.ok)
+        throw new Error(data.error ?? "Could not apply coupon.");
       setQuote(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not apply coupon.");
-    } finally { setApplying(false); }
+    } finally {
+      setApplying(false);
+    }
   }
 
   async function createOrder() {
     setCreating(true);
     setError(null);
     try {
-      const res = await fetch("/api/orders", {
+      const res = await communityFetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planSlug: plan.slug, couponCode: quote?.couponCode ?? undefined }),
+        body: JSON.stringify({
+          planSlug: plan.slug,
+          couponCode: quote?.couponCode ?? undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not start your order.");
@@ -99,10 +124,14 @@ export function CheckoutFlow({ plan, username }: { plan: Plan; username: string 
       const fd = new FormData();
       fd.append("utr", utr.trim());
       fd.append("screenshot", file);
-      const res = await fetch(`/api/orders/${order.orderId}/proof`, { method: "POST", body: fd });
+      const res = await communityFetch(`/api/orders/${order.orderId}/proof`, {
+        method: "POST",
+        body: fd,
+      });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Could not submit your proof.");
-      router.push(`/order/${order.orderId}`);
+      if (!res.ok)
+        throw new Error(data.error ?? "Could not submit your proof.");
+      router.push(scopePath(community.id, `/order/${order.orderId}`));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
       setSubmitting(false);
@@ -122,9 +151,19 @@ export function CheckoutFlow({ plan, username }: { plan: Plan; username: string 
       <div className="order-2 lg:order-1">
         {/* Steps indicator */}
         <div className="mb-8 flex items-center gap-3 text-sm">
-          <StepPill n={1} label="Review" active={step === "review"} done={step === "pay"} />
+          <StepPill
+            n={1}
+            label="Review"
+            active={step === "review"}
+            done={step === "pay"}
+          />
           <div className="h-px flex-1 bg-forest-100" />
-          <StepPill n={2} label="Pay & confirm" active={step === "pay"} done={false} />
+          <StepPill
+            n={2}
+            label="Pay & confirm"
+            active={step === "pay"}
+            done={false}
+          />
         </div>
 
         {error && (
@@ -136,34 +175,86 @@ export function CheckoutFlow({ plan, username }: { plan: Plan; username: string 
 
         {step === "review" ? (
           <div className="rounded-4xl border border-forest-100/70 bg-white/80 p-6 shadow-soft sm:p-8">
-            <h2 className="font-display text-2xl text-forest-950">Review your order</h2>
+            <h2 className="font-display text-2xl text-forest-950">
+              Review your order
+            </h2>
             <p className="mt-2 text-sm text-ink-soft">
-              You&apos;re buying <strong className="text-forest-800">{plan.name}</strong>. Perks are delivered
-              to your Discord account after we verify your payment.
+              You&apos;re buying{" "}
+              <strong className="text-forest-800">{plan.name}</strong>. Perks
+              are delivered to your Discord account after we verify your
+              payment.
             </p>
             <div className="mt-6 rounded-2xl bg-mist p-4 text-sm text-ink-soft">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-forest-500" />
-                Delivering to <strong className="text-forest-800">{username}</strong>
+                Delivering to{" "}
+                <strong className="text-forest-800">{username}</strong>
               </div>
             </div>
             <div className="mt-6 rounded-2xl border border-forest-100 p-4">
-              <label htmlFor="coupon-code" className="text-sm font-medium text-forest-800">Have a coupon?</label>
+              <label
+                htmlFor="coupon-code"
+                className="text-sm font-medium text-forest-800"
+              >
+                Have a coupon?
+              </label>
               <div className="mt-2 flex flex-wrap gap-2">
-                <input id="coupon-code" value={couponCode} maxLength={32} disabled={applying || creating}
-                  onChange={(event) => { setCouponCode(event.target.value); setQuote(null); setError(null); }}
-                  placeholder="Enter coupon code" autoCapitalize="characters" spellCheck={false}
-                  className="min-w-0 flex-1 rounded-xl border border-forest-200 bg-white px-3 py-2 font-mono text-sm" />
-                <Button variant="outline" size="sm" onClick={applyCoupon} disabled={applying || creating || !couponCode.trim()}>
+                <input
+                  id="coupon-code"
+                  value={couponCode}
+                  maxLength={32}
+                  disabled={applying || creating}
+                  onChange={(event) => {
+                    setCouponCode(event.target.value);
+                    setQuote(null);
+                    setError(null);
+                  }}
+                  placeholder="Enter coupon code"
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                  className="min-w-0 flex-1 rounded-xl border border-forest-200 bg-white px-3 py-2 font-mono text-sm"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={applyCoupon}
+                  disabled={applying || creating || !couponCode.trim()}
+                >
                   {applying ? "Checking..." : "Apply"}
                 </Button>
-                {couponCode && <Button variant="ghost" size="sm" disabled={applying || creating}
-                  onClick={() => { setCouponCode(""); setQuote(null); setError(null); }}>Remove</Button>}
+                {couponCode && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={applying || creating}
+                    onClick={() => {
+                      setCouponCode("");
+                      setQuote(null);
+                      setError(null);
+                    }}
+                  >
+                    Remove
+                  </Button>
+                )}
               </div>
-              {quote?.couponCode && <p role="status" className="mt-2 text-sm text-forest-700">{quote.couponCode} applied. You save {formatINR(quote.discountAmount)}.</p>}
-              {couponCode.trim() && !quote && <p className="mt-2 text-xs text-ink-soft">Apply or remove your code before continuing.</p>}
+              {quote?.couponCode && (
+                <p role="status" className="mt-2 text-sm text-forest-700">
+                  {quote.couponCode} applied. You save{" "}
+                  {formatINR(quote.discountAmount)}.
+                </p>
+              )}
+              {couponCode.trim() && !quote && (
+                <p className="mt-2 text-xs text-ink-soft">
+                  Apply or remove your code before continuing.
+                </p>
+              )}
             </div>
-            <Button className="mt-8 w-full" size="lg" onClick={createOrder} disabled={creating || applying || (!!couponCode.trim() && !quote)}>
+            <Button
+              className="mt-8 w-full"
+              size="lg"
+              onClick={createOrder}
+              disabled={creating || applying || (!!couponCode.trim() && !quote)}
+            >
               {creating ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
               Continue to payment
               {!creating && <ArrowRight className="h-4 w-4" />}
@@ -174,7 +265,8 @@ export function CheckoutFlow({ plan, username }: { plan: Plan; username: string 
             {/* Payment */}
             <div className="rounded-4xl border border-forest-100/70 bg-white/80 p-6 shadow-soft sm:p-8">
               <h2 className="flex items-center gap-2 font-display text-2xl text-forest-950">
-                <QrCode className="h-6 w-6 text-forest-500" /> Pay {formatINR(order.amount)} via UPI
+                <QrCode className="h-6 w-6 text-forest-500" /> Pay{" "}
+                {formatINR(order.amount)} via UPI
               </h2>
               <div className="mt-6 flex flex-col items-center gap-6 sm:flex-row sm:items-start">
                 <div
@@ -183,12 +275,28 @@ export function CheckoutFlow({ plan, username }: { plan: Plan; username: string 
                   aria-label="UPI payment QR code"
                 />
                 <div className="w-full space-y-3 text-sm">
-                  <CopyRow label="UPI ID" value={order.upiId} copied={copied === "upi"} onCopy={() => copy(order.upiId, "upi")} />
-                  <CopyRow label="Amount" value={formatINR(order.amount)} copied={copied === "amt"} onCopy={() => copy(String(order.amount), "amt")} />
-                  <CopyRow label="Payment note" value={order.note} copied={copied === "note"} onCopy={() => copy(order.note, "note")} />
+                  <CopyRow
+                    label="UPI ID"
+                    value={order.upiId}
+                    copied={copied === "upi"}
+                    onCopy={() => copy(order.upiId, "upi")}
+                  />
+                  <CopyRow
+                    label="Amount"
+                    value={formatINR(order.amount)}
+                    copied={copied === "amt"}
+                    onCopy={() => copy(String(order.amount), "amt")}
+                  />
+                  <CopyRow
+                    label="Payment note"
+                    value={order.note}
+                    copied={copied === "note"}
+                    onCopy={() => copy(order.note, "note")}
+                  />
                   <p className="text-xs text-ink-soft">
-                    Scan the QR in any UPI app (GPay, PhonePe, Paytm), or pay the UPI ID above. Please include the
-                    payment note so we can match your order.
+                    Scan the QR in any UPI app (GPay, PhonePe, Paytm), or pay
+                    the UPI ID above. Please include the payment note so we can
+                    match your order.
                   </p>
                 </div>
               </div>
@@ -199,17 +307,21 @@ export function CheckoutFlow({ plan, username }: { plan: Plan; username: string 
               onSubmit={submitProof}
               className="rounded-4xl border border-forest-100/70 bg-white/80 p-6 shadow-soft sm:p-8"
             >
-              <h2 className="font-display text-xl text-forest-950">Confirm your payment</h2>
+              <h2 className="font-display text-xl text-forest-950">
+                Confirm your payment
+              </h2>
               <p className="mt-1 text-sm text-ink-soft">
-                Enter the 12-digit UTR reference from your UPI app and upload a screenshot. Our team verifies it
-                before granting perks.
+                Enter the 12-digit UTR reference from your UPI app and upload a
+                screenshot. Our team verifies it before granting perks.
               </p>
 
               <label className="mt-6 block text-sm font-medium text-forest-800">
                 UTR / UPI reference number
                 <input
                   value={utr}
-                  onChange={(e) => setUtr(e.target.value.replace(/\D/g, "").slice(0, 12))}
+                  onChange={(e) =>
+                    setUtr(e.target.value.replace(/\D/g, "").slice(0, 12))
+                  }
                   inputMode="numeric"
                   placeholder="12-digit reference"
                   className="mt-2 h-12 w-full rounded-2xl border border-forest-200 bg-white px-4 font-mono text-base outline-none focus:border-forest-400"
@@ -227,15 +339,29 @@ export function CheckoutFlow({ plan, username }: { plan: Plan; username: string 
                     className="flex-1 text-sm text-ink-soft file:mr-3 file:rounded-full file:border-0 file:bg-forest-100 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-forest-700"
                   />
                 </div>
-                {file && <span className="mt-1 block text-xs text-forest-600">Selected: {file.name}</span>}
+                {file && (
+                  <span className="mt-1 block text-xs text-forest-600">
+                    Selected: {file.name}
+                  </span>
+                )}
               </label>
 
-              <Button type="submit" className="mt-7 w-full" size="lg" disabled={submitting}>
-                {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Check className="h-5 w-5" />}
+              <Button
+                type="submit"
+                className="mt-7 w-full"
+                size="lg"
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Check className="h-5 w-5" />
+                )}
                 Submit for verification
               </Button>
               <p className="mt-3 text-center text-xs text-ink-soft">
-                Each UTR can only be used once. Faked or reused references are rejected.
+                Each UTR can only be used once. Faked or reused references are
+                rejected.
               </p>
             </form>
           </div>
@@ -247,27 +373,50 @@ export function CheckoutFlow({ plan, username }: { plan: Plan; username: string 
         <div className="lg:sticky lg:top-28">
           <div className="rounded-4xl border border-forest-100/70 bg-white/80 p-6 shadow-soft">
             <div className="flex items-center gap-3">
-              <span className="grid h-11 w-11 place-items-center rounded-2xl bg-forest-50 text-2xl">{plan.emoji}</span>
+              <span className="grid h-11 w-11 place-items-center rounded-2xl bg-forest-50 text-2xl">
+                {plan.emoji}
+              </span>
               <div>
-                <h3 className="font-display text-lg font-semibold text-forest-950">{plan.name}</h3>
+                <h3 className="font-display text-lg font-semibold text-forest-950">
+                  {plan.name}
+                </h3>
                 <p className="text-xs text-ink-soft">{plan.tagline}</p>
               </div>
             </div>
             <div className="mt-5 flex items-end gap-1.5 border-b border-forest-100 pb-5">
-              <span className="font-display text-3xl font-semibold text-forest-950">{formatINR(price.amount)}</span>
-              <span className="mb-1 text-sm text-ink-soft">/ {plan.durationLabel}</span>
+              <span className="font-display text-3xl font-semibold text-forest-950">
+                {formatINR(price.amount)}
+              </span>
+              <span className="mb-1 text-sm text-ink-soft">
+                / {plan.durationLabel}
+              </span>
             </div>
             {price.couponCode && (
               <dl className="mt-4 space-y-2 text-sm">
-                <div className="flex justify-between"><dt>Original price</dt><dd>{formatINR(price.subtotal)}</dd></div>
-                <div className="flex justify-between gap-2 text-forest-700"><dt>Coupon: {price.couponCode}</dt><dd>−{formatINR(price.discountAmount)}</dd></div>
-                <div className="flex justify-between font-semibold"><dt>Amount to pay</dt><dd>{formatINR(price.amount)}</dd></div>
+                <div className="flex justify-between">
+                  <dt>Original price</dt>
+                  <dd>{formatINR(price.subtotal)}</dd>
+                </div>
+                <div className="flex justify-between gap-2 text-forest-700">
+                  <dt>Coupon: {price.couponCode}</dt>
+                  <dd>−{formatINR(price.discountAmount)}</dd>
+                </div>
+                <div className="flex justify-between font-semibold">
+                  <dt>Amount to pay</dt>
+                  <dd>{formatINR(price.amount)}</dd>
+                </div>
               </dl>
             )}
             <ul className="mt-5 space-y-2.5">
               {plan.features.map((f) => (
-                <li key={f.label} className="flex items-start gap-2 text-sm text-ink-soft">
-                  <Icon name={f.icon} className="mt-0.5 h-4 w-4 shrink-0 text-forest-500" />
+                <li
+                  key={f.label}
+                  className="flex items-start gap-2 text-sm text-ink-soft"
+                >
+                  <Icon
+                    name={f.icon}
+                    className="mt-0.5 h-4 w-4 shrink-0 text-forest-500"
+                  />
                   {f.label}
                 </li>
               ))}
@@ -279,18 +428,39 @@ export function CheckoutFlow({ plan, username }: { plan: Plan; username: string 
   );
 }
 
-function StepPill({ n, label, active, done }: { n: number; label: string; active: boolean; done: boolean }) {
+function StepPill({
+  n,
+  label,
+  active,
+  done,
+}: {
+  n: number;
+  label: string;
+  active: boolean;
+  done: boolean;
+}) {
   return (
     <div className="flex items-center gap-2">
       <span
         className={cn(
           "grid h-7 w-7 place-items-center rounded-full text-xs font-bold",
-          done ? "bg-forest-500 text-white" : active ? "bg-forest-grad text-white" : "bg-forest-100 text-forest-500",
+          done
+            ? "bg-forest-500 text-white"
+            : active
+              ? "bg-forest-grad text-white"
+              : "bg-forest-100 text-forest-500",
         )}
       >
         {done ? <Check className="h-4 w-4" /> : n}
       </span>
-      <span className={cn("font-medium", active || done ? "text-forest-900" : "text-ink-soft")}>{label}</span>
+      <span
+        className={cn(
+          "font-medium",
+          active || done ? "text-forest-900" : "text-ink-soft",
+        )}
+      >
+        {label}
+      </span>
     </div>
   );
 }
@@ -310,7 +480,9 @@ function CopyRow({
     <div className="flex items-center justify-between gap-2 rounded-xl bg-mist px-3 py-2">
       <div className="min-w-0">
         <div className="text-xs text-ink-soft">{label}</div>
-        <div className="truncate font-mono text-sm font-medium text-forest-900">{value}</div>
+        <div className="truncate font-mono text-sm font-medium text-forest-900">
+          {value}
+        </div>
       </div>
       <button
         type="button"
@@ -318,7 +490,11 @@ function CopyRow({
         className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-forest-500 transition-colors hover:bg-white"
         aria-label={`Copy ${label}`}
       >
-        {copied ? <Check className="h-4 w-4 text-forest-600" /> : <Copy className="h-4 w-4" />}
+        {copied ? (
+          <Check className="h-4 w-4 text-forest-600" />
+        ) : (
+          <Copy className="h-4 w-4" />
+        )}
       </button>
     </div>
   );

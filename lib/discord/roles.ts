@@ -1,5 +1,9 @@
+import { discordFetch } from "./request";
 export class RoleDeliveryError extends Error {
-  constructor(message: string, public retryAfterSeconds = 30) {
+  constructor(
+    message: string,
+    public retryAfterSeconds = 30,
+  ) {
     super(message);
   }
 }
@@ -15,7 +19,9 @@ export function roleTarget(planSlug: string) {
   const guildId = process.env.DISCORD_GUILD_ID ?? "";
   const roleId = process.env[keys[planSlug] ?? ""] ?? "";
   if (!snowflake.test(guildId) || !snowflake.test(roleId)) {
-    throw new RoleDeliveryError("Configure the Discord server and this plan's role before delivering.");
+    throw new RoleDeliveryError(
+      "Configure the Discord server and this plan's role before delivering.",
+    );
   }
   return { guildId, roleId };
 }
@@ -24,12 +30,17 @@ export async function grantRole(
   guildId: string,
   roleId: string,
   userId: string,
-  request: typeof fetch = fetch,
+  request: typeof fetch = discordFetch,
 ) {
   const token = process.env.DISCORD_BOT_TOKEN;
-  if (!token) throw new RoleDeliveryError("Configure DISCORD_BOT_TOKEN before delivering.");
+  if (!token)
+    throw new RoleDeliveryError(
+      "Configure DISCORD_BOT_TOKEN before delivering.",
+    );
   if (![guildId, roleId, userId].every((id) => snowflake.test(id))) {
-    throw new RoleDeliveryError("A valid Discord member, server, and role are required.");
+    throw new RoleDeliveryError(
+      "A valid Discord member, server, and role are required.",
+    );
   }
   let response: Response;
   try {
@@ -43,23 +54,36 @@ export async function grantRole(
       },
     );
   } catch {
-    throw new RoleDeliveryError("Discord could not be reached. Retry delivery shortly.");
+    throw new RoleDeliveryError(
+      "Discord could not be reached. Retry delivery shortly.",
+    );
   }
   if (response.status === 204) return;
   if (response.status === 429) {
     const body = await response.json().catch(() => ({}));
-    const seconds = Number(body.retry_after ?? response.headers.get("retry-after"));
+    const seconds = Number(
+      body.retry_after ?? response.headers.get("retry-after"),
+    );
     throw new RoleDeliveryError(
       "Discord is rate limiting delivery. Retry after the cooldown.",
-      Number.isFinite(seconds) && seconds > 0 ? Math.max(1, Math.ceil(seconds)) : 60,
+      Number.isFinite(seconds) && seconds > 0
+        ? Math.max(1, Math.ceil(seconds))
+        : 60,
     );
   }
   if (response.status === 403) {
-    throw new RoleDeliveryError("Check the bot's Manage Roles permission and role hierarchy.");
+    throw new RoleDeliveryError(
+      "Check the bot's Manage Roles permission and role hierarchy.",
+    );
   }
   if (response.status === 404) {
-    throw new RoleDeliveryError("Check that the member, bot, and purchased role are in the server.");
+    throw new RoleDeliveryError(
+      "Check that the member, bot, and purchased role are in the server.",
+    );
   }
-  if (response.status === 401) throw new RoleDeliveryError("The Discord bot token is invalid.");
-  throw new RoleDeliveryError("Discord rejected delivery. Check the setup and retry.");
+  if (response.status === 401)
+    throw new RoleDeliveryError("The Discord bot token is invalid.");
+  throw new RoleDeliveryError(
+    "Discord rejected delivery. Check the setup and retry.",
+  );
 }

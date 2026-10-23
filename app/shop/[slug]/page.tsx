@@ -1,5 +1,6 @@
+import { serverPath } from "@/lib/servers/context";
 import type { Metadata } from "next";
-import Link from "next/link";
+import { CommunityLink as Link } from "@/components/servers/Community";
 import { notFound } from "next/navigation";
 import { getPlan, listProducts } from "@/lib/catalog";
 export const dynamic = "force-dynamic";
@@ -16,8 +17,14 @@ import { HowItWorks } from "@/components/shop/HowItWorks";
 import { Reveal, StaggerGroup, StaggerItem } from "@/components/ui/Reveal";
 import { GradientBlobs } from "@/components/decor/nature";
 import { formatINR } from "@/lib/utils";
-import { ArrowLeft, ArrowRight, Check, Clock, ShieldCheck, Sparkles } from "lucide-react";
-
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Clock,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
 
 export async function generateMetadata({
   params,
@@ -39,7 +46,11 @@ export async function generateMetadata({
   };
 }
 
-export default async function PlanPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function PlanPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
   const { slug } = await params;
   const plan = await getPlan(slug);
   if (!plan) notFound();
@@ -63,7 +74,12 @@ export default async function PlanPage({ params }: { params: Promise<{ slug: str
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
 
       {/* Hero */}
       <section className="relative overflow-hidden pb-12 pt-32 sm:pt-40">
@@ -86,20 +102,30 @@ export default async function PlanPage({ params }: { params: Promise<{ slug: str
                 {plan.flagship && <Badge tone="violet">Flagship</Badge>}
               </div>
 
-              <h1 className="mt-5 text-4xl leading-tight text-forest-950 sm:text-5xl">{plan.name}</h1>
+              <h1 className="mt-5 text-4xl leading-tight text-forest-950 sm:text-5xl">
+                {plan.name}
+              </h1>
               <p className="mt-3 text-lg text-ink-soft">{plan.tagline}</p>
 
               <div className="mt-6 flex items-end gap-2">
                 <span className="font-display text-5xl font-semibold text-forest-950">
                   {formatINR(plan.price)}
                 </span>
-                <span className="mb-1.5 text-ink-soft">/ {plan.durationLabel}</span>
+                <span className="mb-1.5 text-ink-soft">
+                  / {plan.durationLabel}
+                </span>
               </div>
 
-              <p className="mt-6 max-w-xl text-pretty leading-relaxed text-ink-soft">{plan.description}</p>
+              <p className="mt-6 max-w-xl text-pretty leading-relaxed text-ink-soft">
+                {plan.description}
+              </p>
 
               <div className="mt-8 flex flex-wrap gap-3">
-                <Button href={`/checkout?plan=${plan.slug}`} variant="primary" size="lg">
+                <Button
+                  href={`/checkout?plan=${plan.slug}`}
+                  variant="primary"
+                  size="lg"
+                >
                   Get {plan.name} <ArrowRight className="h-4 w-4" />
                 </Button>
                 <Button href="/shop" variant="outline" size="lg">
@@ -109,10 +135,12 @@ export default async function PlanPage({ params }: { params: Promise<{ slug: str
 
               <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-ink-soft">
                 <span className="flex items-center gap-1.5">
-                  <ShieldCheck className="h-4 w-4 text-forest-500" /> Secure checkout
+                  <ShieldCheck className="h-4 w-4 text-forest-500" /> Secure
+                  checkout
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Clock className="h-4 w-4 text-forest-500" /> Delivered within 24h
+                  <Clock className="h-4 w-4 text-forest-500" /> Delivered within
+                  24h
                 </span>
               </div>
             </Reveal>
@@ -120,7 +148,10 @@ export default async function PlanPage({ params }: { params: Promise<{ slug: str
             {/* Card */}
             <Reveal delay={0.1}>
               <div className="lg:sticky lg:top-28">
-                <PricingCard plan={plan} featured={plan.popular || plan.flagship} />
+                <PricingCard
+                  plan={plan}
+                  featured={plan.popular || plan.flagship}
+                />
               </div>
             </Reveal>
           </div>
@@ -132,7 +163,11 @@ export default async function PlanPage({ params }: { params: Promise<{ slug: str
         <Container>
           <div className="grid gap-12 lg:grid-cols-2">
             <Reveal>
-              <SectionHeading align="left" eyebrow="What you get" title="Benefits" />
+              <SectionHeading
+                align="left"
+                eyebrow="What you get"
+                title="Benefits"
+              />
               <ul className="mt-6 space-y-4">
                 {plan.benefits.map((b) => (
                   <li key={b} className="flex items-start gap-3">
@@ -146,7 +181,11 @@ export default async function PlanPage({ params }: { params: Promise<{ slug: str
             </Reveal>
 
             <Reveal delay={0.05}>
-              <SectionHeading align="left" eyebrow="Included" title="Features" />
+              <SectionHeading
+                align="left"
+                eyebrow="Included"
+                title="Features"
+              />
               <StaggerGroup className="mt-6 grid gap-3">
                 {plan.features.map((f) => (
                   <StaggerItem key={f.label}>
@@ -154,8 +193,12 @@ export default async function PlanPage({ params }: { params: Promise<{ slug: str
                       <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-forest-50 text-forest-600">
                         <Icon name={f.icon} className="h-5 w-5" />
                       </span>
-                      <span className="text-sm font-medium text-forest-900">{f.label}</span>
-                      {f.highlight && <Sparkles className="ml-auto h-4 w-4 text-amber-400" />}
+                      <span className="text-sm font-medium text-forest-900">
+                        {f.label}
+                      </span>
+                      {f.highlight && (
+                        <Sparkles className="ml-auto h-4 w-4 text-amber-400" />
+                      )}
                     </div>
                   </StaggerItem>
                 ))}
@@ -171,11 +214,19 @@ export default async function PlanPage({ params }: { params: Promise<{ slug: str
           <div className="grid gap-6 md:grid-cols-2">
             <Reveal>
               <Card className="h-full">
-                <h3 className="font-display text-xl font-semibold text-forest-950">Eligibility</h3>
+                <h3 className="font-display text-xl font-semibold text-forest-950">
+                  Eligibility
+                </h3>
                 <ul className="mt-4 space-y-3">
                   {plan.eligibility.map((e) => (
-                    <li key={e} className="flex items-start gap-2.5 text-sm text-ink-soft">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-forest-500" strokeWidth={3} />
+                    <li
+                      key={e}
+                      className="flex items-start gap-2.5 text-sm text-ink-soft"
+                    >
+                      <Check
+                        className="mt-0.5 h-4 w-4 shrink-0 text-forest-500"
+                        strokeWidth={3}
+                      />
                       {e}
                     </li>
                   ))}
@@ -185,9 +236,12 @@ export default async function PlanPage({ params }: { params: Promise<{ slug: str
             <Reveal delay={0.05}>
               <Card className="h-full bg-mist">
                 <h3 className="flex items-center gap-2 font-display text-xl font-semibold text-forest-950">
-                  <Clock className="h-5 w-5 text-forest-500" /> Delivery timeline
+                  <Clock className="h-5 w-5 text-forest-500" /> Delivery
+                  timeline
                 </h3>
-                <p className="mt-4 leading-relaxed text-ink-soft">{plan.deliveryTimeline}</p>
+                <p className="mt-4 leading-relaxed text-ink-soft">
+                  {plan.deliveryTimeline}
+                </p>
               </Card>
             </Reveal>
           </div>

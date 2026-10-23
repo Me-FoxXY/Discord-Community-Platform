@@ -1,4 +1,5 @@
 "use client";
+import { communityFetch, apiUrl } from "@/components/servers/Community";
 
 import { useState } from "react";
 import {
@@ -56,18 +57,30 @@ export function AdminBoard({
   const [rejectNote, setRejectNote] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  async function act(order: AdminOrderDTO, action: "approve" | "reject" | "retry", note?: string) {
+  async function act(
+    order: AdminOrderDTO,
+    action: "approve" | "reject" | "retry",
+    note?: string,
+  ) {
     setBusy(order.id);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/orders/${order.id}/${action === "retry" ? "delivery" : "verify"}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, note }),
-      });
+      const res = await communityFetch(
+        `/api/admin/orders/${order.id}/${action === "retry" ? "delivery" : "verify"}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action, note }),
+        },
+      );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Action failed.");
-      const updated = { ...order, status: data.status, deliveryStatus: data.deliveryStatus, deliveryError: data.deliveryError };
+      const updated = {
+        ...order,
+        status: data.status,
+        deliveryStatus: data.deliveryStatus,
+        deliveryError: data.deliveryError,
+      };
       setPending((list) => list.filter((o) => o.id !== order.id));
       setRecent((list) => [updated, ...list.filter((o) => o.id !== order.id)]);
       setTab("recent");
@@ -98,7 +111,9 @@ export function AdminBoard({
       </div>
 
       {error && (
-        <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>
+        <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {error}
+        </div>
       )}
 
       {list.length === 0 ? (
@@ -116,17 +131,27 @@ export function AdminBoard({
                     <span className="grid h-9 w-9 place-items-center rounded-full bg-forest-grad text-xs font-bold text-white">
                       {o.discordUsername.slice(0, 2).toUpperCase()}
                     </span>
-                    <span className="font-semibold text-forest-900">{o.discordUsername}</span>
-                    <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold", statusStyles[o.status])}>
+                    <span className="font-semibold text-forest-900">
+                      {o.discordUsername}
+                    </span>
+                    <span
+                      className={cn(
+                        "rounded-full px-2.5 py-0.5 text-xs font-semibold",
+                        statusStyles[o.status],
+                      )}
+                    >
                       {o.status.replace("_", " ")}
                     </span>
                     {o.duplicateFlag && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
-                        <AlertTriangle className="h-3 w-3" /> Duplicate screenshot
+                        <AlertTriangle className="h-3 w-3" /> Duplicate
+                        screenshot
                       </span>
                     )}
                   </div>
-                  <div className="mt-1 font-mono text-xs text-ink-soft">ID {o.discordUserId}</div>
+                  <div className="mt-1 font-mono text-xs text-ink-soft">
+                    ID {o.discordUserId}
+                  </div>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-ink-soft">
                   <Clock className="h-3.5 w-3.5" />
@@ -142,18 +167,31 @@ export function AdminBoard({
               </div>
               {o.couponCode && (
                 <p className="mt-3 text-sm text-forest-700">
-                  Coupon {o.couponCode}: {formatINR(o.subtotal)} − {formatINR(o.discountAmount)} discount = {formatINR(o.amount)} payable.
+                  Coupon {o.couponCode}: {formatINR(o.subtotal)} −{" "}
+                  {formatINR(o.discountAmount)} discount = {formatINR(o.amount)}{" "}
+                  payable.
                 </p>
               )}
 
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 {o.status === "approved" && (
                   <div className="w-full text-sm">
-                    <p>Role delivery: {o.deliveryStatus.replaceAll("_", " ")}</p>
-                    {o.deliveryError && <p className="text-red-600">{o.deliveryError}</p>}
+                    <p>
+                      Role delivery: {o.deliveryStatus.replaceAll("_", " ")}
+                    </p>
+                    {o.deliveryError && (
+                      <p className="text-red-600">{o.deliveryError}</p>
+                    )}
                     {o.deliveryStatus !== "delivered" && (
-                      <Button variant="outline" size="sm" disabled={busy === o.id} onClick={() => act(o, "retry")}>
-                        {busy === o.id ? "Delivering..." : "Retry role delivery"}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={busy === o.id}
+                        onClick={() => act(o, "retry")}
+                      >
+                        {busy === o.id
+                          ? "Delivering..."
+                          : "Retry role delivery"}
                       </Button>
                     )}
                   </div>
@@ -174,7 +212,11 @@ export function AdminBoard({
                       onClick={() => act(o, "approve")}
                       disabled={busy === o.id}
                     >
-                      {busy === o.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                      {busy === o.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Check className="h-4 w-4" />
+                      )}
                       Approve
                     </Button>
                     <Button
@@ -195,15 +237,21 @@ export function AdminBoard({
       )}
 
       {/* Screenshot preview */}
-      <Modal open={!!preview} onClose={() => setPreview(null)} title="Payment screenshot" className="max-w-2xl">
+      <Modal
+        open={!!preview}
+        onClose={() => setPreview(null)}
+        title="Payment screenshot"
+        className="max-w-2xl"
+      >
         {preview && (
           <div>
             <div className="mb-3 text-sm text-ink-soft">
-              {preview.discordUsername} · {preview.note} · UTR {preview.utr ?? "—"}
+              {preview.discordUsername} · {preview.note} · UTR{" "}
+              {preview.utr ?? "—"}
             </div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={`/api/orders/${preview.id}/screenshot`}
+              src={apiUrl(`/api/orders/${preview.id}/screenshot`)}
               alt="Payment screenshot"
               className="max-h-[60vh] w-full rounded-2xl border border-forest-100 object-contain"
             />
@@ -212,11 +260,16 @@ export function AdminBoard({
       </Modal>
 
       {/* Reject with note */}
-      <Modal open={!!rejecting} onClose={() => setRejecting(null)} title="Reject this order?">
+      <Modal
+        open={!!rejecting}
+        onClose={() => setRejecting(null)}
+        title="Reject this order?"
+      >
         {rejecting && (
           <div>
             <p className="text-sm text-ink-soft">
-              Optionally add a note explaining why. The buyer will see this on their order page.
+              Optionally add a note explaining why. The buyer will see this on
+              their order page.
             </p>
             <textarea
               value={rejectNote}
@@ -232,10 +285,16 @@ export function AdminBoard({
               <Button
                 variant="primary"
                 className="bg-red-500 bg-none hover:bg-red-600"
-                onClick={() => act(rejecting, "reject", rejectNote.trim() || undefined)}
+                onClick={() =>
+                  act(rejecting, "reject", rejectNote.trim() || undefined)
+                }
                 disabled={busy === rejecting.id}
               >
-                {busy === rejecting.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+                {busy === rejecting.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <X className="h-4 w-4" />
+                )}
                 Confirm reject
               </Button>
             </div>
@@ -246,14 +305,24 @@ export function AdminBoard({
   );
 }
 
-function TabBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function TabBtn({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
         "inline-flex items-center rounded-full px-4 py-2 text-sm font-medium transition-colors",
-        active ? "bg-forest-grad text-white shadow-soft" : "text-ink-soft hover:text-forest-800",
+        active
+          ? "bg-forest-grad text-white shadow-soft"
+          : "text-ink-soft hover:text-forest-800",
       )}
     >
       {children}
@@ -261,11 +330,26 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
   );
 }
 
-function Meta({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+function Meta({
+  label,
+  value,
+  mono,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
   return (
     <div className="min-w-0">
       <div className="text-xs text-ink-soft">{label}</div>
-      <div className={cn("truncate font-semibold text-forest-900", mono && "font-mono text-sm")}>{value}</div>
+      <div
+        className={cn(
+          "truncate font-semibold text-forest-900",
+          mono && "font-mono text-sm",
+        )}
+      >
+        {value}
+      </div>
     </div>
   );
 }

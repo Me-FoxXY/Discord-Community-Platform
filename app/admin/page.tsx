@@ -1,3 +1,4 @@
+import { requireAccess } from "@/lib/servers/access";
 import type { Metadata } from "next";
 import { listPending, listRecent } from "@/lib/orders/store";
 import { Container } from "@/components/ui/Container";
@@ -42,10 +43,22 @@ function toDTO(o: Order): AdminOrderDTO {
 
 export default async function AdminPage() {
   const session = await auth();
-  if (!session?.user?.isAdmin) redirect("/login");
+  if (!session?.user) redirect("/login?callbackUrl=/servers");
+  let access;
+  try {
+    access = await requireAccess("review", undefined, true);
+  } catch {
+    redirect("/servers?error=access");
+  }
   const [pending, recent] = await Promise.all([listPending(), listRecent(50)]);
-  const coupons = await prisma.coupon.findMany({ orderBy: { createdAt: "desc" } });
-  const [products, settings] = await Promise.all([listProducts(true), prisma.storeSettings.findUnique({ where: { id: 'default' } })]);
+  const coupons = await prisma.coupon.findMany({
+    where: { serverId: access.server.id },
+    orderBy: { createdAt: "desc" },
+  });
+  const [products, settings] = await Promise.all([
+    listProducts(true),
+    prisma.storeSettings.findUnique({ where: { serverId: access.server.id } }),
+  ]);
 
   return (
     <main className="relative min-h-dvh overflow-hidden pb-24 pt-32 sm:pt-36">
@@ -57,14 +70,34 @@ export default async function AdminPage() {
           </span>
           <div>
             <h1 className="text-3xl text-forest-950">Verification dashboard</h1>
-            <p className="text-sm text-ink-soft">Review payments and grant perks. Approve only what you can verify.</p>
+            <p className="text-sm text-ink-soft">
+              Review payments and grant perks. Approve only what you can verify.
+            </p>
           </div>
         </div>
 
         <div className="mt-10">
-          <AdminBoard initialPending={pending.map(toDTO)} initialRecent={recent.map(toDTO)} />
-          <StoreManager products={products} primaryColor={settings?.primaryColor ?? '#2f855a'} accentColor={settings?.accentColor ?? '#14a5a0'} />
-          <CouponManager plans={products} initial={coupons.map((coupon) => ({ ...coupon, expiresAt: coupon.expiresAt?.toISOString() ?? null, createdAt: undefined }))} />
+          <AdminBoard
+            initialPending={pending.map(toDTO)}
+            initialRecent={recent.map(toDTO)}
+          />
+          {access.role === "manager" && (
+            <>
+              <StoreManager
+                products={products}
+                primaryColor={settings?.primaryColor ?? "#2f855a"}
+                accentColor={settings?.accentColor ?? "#14a5a0"}
+              />
+              <CouponManager
+                plans={products}
+                initial={coupons.map((coupon) => ({
+                  ...coupon,
+                  expiresAt: coupon.expiresAt?.toISOString() ?? null,
+                  createdAt: undefined,
+                }))}
+              />
+            </>
+          )}
         </div>
       </Container>
     </main>

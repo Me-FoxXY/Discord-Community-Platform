@@ -1,30 +1,95 @@
-vi.mock("@/lib/catalog", async () => { const { plans } = await import("@/config/plans"); return { getPlan: async (slug: string) => plans.find(p => p.slug === slug) }; });
+vi.mock("@/lib/servers/access", async () => ({
+  requireAccess: async () => {
+    const { auth } = await import("@/lib/auth");
+    const { ServerError } = await import("@/lib/servers/errors");
+    const s = await auth();
+    if (!s?.user?.isAdmin) throw new ServerError("Forbidden", 403);
+    return {
+      userId: s.user.discordId || "admin",
+      role: "manager",
+      server: { id: "default" },
+    };
+  },
+}));
+vi.mock("@/lib/servers/context", () => ({
+  currentServerId: async () => "default",
+  currentServer: async () => ({
+    id: "default",
+    status: "active",
+    guildId: process.env.DISCORD_GUILD_ID || "123456789012345678",
+    upiId: "test@upi",
+    payeeName: "Test Store",
+  }),
+}));
+vi.mock("@/lib/catalog", async () => {
+  const { plans } = await import("@/config/plans");
+  return {
+    getPlan: async (slug: string) => plans.find((p) => p.slug === slug),
+  };
+});
 import { beforeEach, expect, it, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ auth: vi.fn(), create: vi.fn(), updateMany: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  auth: vi.fn(),
+  create: vi.fn(),
+  updateMany: vi.fn(),
+}));
 vi.mock("@/lib/auth", () => ({ auth: mocks.auth }));
-vi.mock("@/lib/prisma", () => ({ prisma: { coupon: { create: mocks.create, updateMany: mocks.updateMany } } }));
+vi.mock("@/lib/prisma", () => ({
+  prisma: {
+    $transaction: async (fn: Function) =>
+      fn({
+        coupon: { create: mocks.create, updateMany: mocks.updateMany },
+        auditEvent: { create: async () => ({}) },
+      }),
+    coupon: { create: mocks.create, updateMany: mocks.updateMany },
+  },
+}));
 import { POST } from "@/app/api/admin/coupons/route";
 import { PATCH } from "@/app/api/admin/coupons/[id]/route";
-const input = { code: "save10", kind: "percent", value: 10, minAmount: 0, planSlug: null, expiresAt: null };
-const request = (body: object) => new Request("http://localhost/api/admin/coupons", {
-  method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+const input = {
+  code: "save10",
+  kind: "percent",
+  value: 10,
+  minAmount: 0,
+  planSlug: null,
+  expiresAt: null,
+};
+const request = (body: object) =>
+  new Request("http://localhost/api/admin/coupons", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+beforeEach(() => {
+  vi.resetAllMocks();
+  mocks.auth.mockResolvedValue({ user: { isAdmin: true } });
 });
-beforeEach(() => { vi.resetAllMocks(); mocks.auth.mockResolvedValue({ user: { isAdmin: true } }); });
 it("blocks buyers from creating or disabling coupons", async () => {
   mocks.auth.mockResolvedValue({ user: { isAdmin: false } });
   expect((await POST(request(input))).status).toBe(403);
-  expect((await PATCH(request({ active: false }), { params: Promise.resolve({ id: "coupon" }) })).status).toBe(403);
+  expect(
+    (
+      await PATCH(request({ active: false }), {
+        params: Promise.resolve({ id: "coupon" }),
+      })
+    ).status,
+  ).toBe(403);
   expect(mocks.create).not.toHaveBeenCalled();
   expect(mocks.updateMany).not.toHaveBeenCalled();
 });
 it("normalizes new coupon codes", async () => {
   mocks.create.mockResolvedValue({ id: "coupon", ...input, code: "SAVE10" });
   expect((await POST(request(input))).status).toBe(201);
-  expect(mocks.create).toHaveBeenCalledWith({ data: { ...input, code: "SAVE10" } });
+  expect(mocks.create).toHaveBeenCalledWith({
+    data: { ...input, serverId: "default", code: "SAVE10" },
+  });
 });
 it("rejects 100 percent discounts and past expiry", async () => {
   expect((await POST(request({ ...input, value: 100 }))).status).toBe(400);
-  expect((await POST(request({ ...input, expiresAt: "2000-01-01T00:00:00Z" }))).status).toBe(400);
+  expect(
+    (await POST(request({ ...input, expiresAt: "2000-01-01T00:00:00Z" })))
+      .status,
+  ).toBe(400);
   expect(mocks.create).not.toHaveBeenCalled();
 });
 it("reports duplicate codes as conflicts", async () => {

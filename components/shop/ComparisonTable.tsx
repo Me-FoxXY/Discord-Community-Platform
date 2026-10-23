@@ -1,10 +1,9 @@
-import Link from "next/link";
+import { CommunityLink as Link } from "@/components/servers/Community";
 import { Check, Minus } from "lucide-react";
 import type { Plan } from "@/config/plans";
 import { formatINR, cn } from "@/lib/utils";
 
 type Cell = boolean | string;
-
 
 function CellView({ value }: { value: Cell }) {
   if (value === true)
@@ -23,19 +22,28 @@ function CellView({ value }: { value: Cell }) {
 }
 
 export function ComparisonTable({ plans }: { plans: Plan[] }) {
- const labels = [...new Set(plans.flatMap(p => p.features.map(f => f.label)))];
- const rows = labels.map(label => ({label, values: plans.map(p => p.features.some(f => f.label === label))}));
+  const labels = [
+    ...new Set(plans.flatMap((p) => p.features.map((f) => f.label))),
+  ];
+  const rows = labels.map((label) => ({
+    label,
+    values: plans.map((p) => p.features.some((f) => f.label === label)),
+  }));
   return (
     <div className="overflow-x-auto rounded-4xl border border-forest-100/70 bg-white/80 shadow-soft">
       <table className="w-full min-w-[640px] border-collapse text-left">
         <thead>
           <tr className="border-b border-forest-100">
-            <th className="p-5 text-sm font-semibold text-ink-soft">Features</th>
+            <th className="p-5 text-sm font-semibold text-ink-soft">
+              Features
+            </th>
             {plans.map((p) => (
               <th key={p.slug} className="p-5">
                 <div className="flex items-center gap-2">
                   <span aria-hidden>{p.emoji}</span>
-                  <span className="font-display text-base font-semibold text-forest-950">{p.name}</span>
+                  <span className="font-display text-base font-semibold text-forest-950">
+                    {p.name}
+                  </span>
                   {p.popular && (
                     <span className="rounded-full bg-forest-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-forest-700">
                       Popular
@@ -48,8 +56,13 @@ export function ComparisonTable({ plans }: { plans: Plan[] }) {
         </thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={r.label} className="border-b border-forest-50 last:border-0">
-              <td className="p-5 text-sm font-medium text-forest-900">{r.label}</td>
+            <tr
+              key={r.label}
+              className="border-b border-forest-50 last:border-0"
+            >
+              <td className="p-5 text-sm font-medium text-forest-900">
+                {r.label}
+              </td>
               {r.values.map((v, i) => (
                 <td key={i} className="p-5">
                   <CellView value={v} />
@@ -61,7 +74,9 @@ export function ComparisonTable({ plans }: { plans: Plan[] }) {
             <td className="p-5 text-sm font-semibold text-forest-900">Price</td>
             {plans.map((p) => (
               <td key={p.slug} className="p-5">
-                <div className="font-display text-xl font-semibold text-forest-950">{formatINR(p.price)}</div>
+                <div className="font-display text-xl font-semibold text-forest-950">
+                  {formatINR(p.price)}
+                </div>
                 <div className="text-xs text-ink-soft">/ {p.durationLabel}</div>
               </td>
             ))}

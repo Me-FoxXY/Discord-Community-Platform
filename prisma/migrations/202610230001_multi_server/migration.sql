@@ -1,0 +1,17 @@
+CREATE TABLE "Server" ("id" TEXT PRIMARY KEY, "guildId" TEXT UNIQUE, "name" TEXT NOT NULL, "icon" TEXT, "inviteUrl" TEXT NOT NULL DEFAULT '', "upiId" TEXT NOT NULL DEFAULT '', "payeeName" TEXT NOT NULL DEFAULT '', "botKey" TEXT NOT NULL DEFAULT 'shared', "status" TEXT NOT NULL DEFAULT 'active', "version" INTEGER NOT NULL DEFAULT 1, "createdBy" TEXT NOT NULL, "updatedBy" TEXT NOT NULL, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP);
+INSERT INTO "Server" ("id", "name", "createdBy", "updatedBy") VALUES ('default', 'Verdanta', 'migration', 'migration');
+ALTER TABLE "Order" ADD COLUMN "serverId" TEXT NOT NULL DEFAULT 'default' REFERENCES "Server"("id") ON DELETE RESTRICT, ADD COLUMN "paymentUpiId" TEXT, ADD COLUMN "paymentPayee" TEXT;
+CREATE INDEX "Order_serverId_status_createdAt_idx" ON "Order"("serverId","status","createdAt");
+ALTER TABLE "Product" ADD COLUMN "serverId" TEXT NOT NULL DEFAULT 'default' REFERENCES "Server"("id") ON DELETE RESTRICT;
+ALTER TABLE "Product" DROP CONSTRAINT "Product_pkey", ADD PRIMARY KEY ("serverId", "slug");
+ALTER TABLE "Coupon" ADD COLUMN "serverId" TEXT NOT NULL DEFAULT 'default' REFERENCES "Server"("id") ON DELETE RESTRICT;
+DROP INDEX "Coupon_code_key";
+CREATE UNIQUE INDEX "Coupon_serverId_code_key" ON "Coupon"("serverId","code");
+ALTER TABLE "StoreSettings" ADD COLUMN "serverId" TEXT NOT NULL DEFAULT 'default' REFERENCES "Server"("id") ON DELETE RESTRICT;
+CREATE UNIQUE INDEX "StoreSettings_serverId_key" ON "StoreSettings"("serverId");
+CREATE TABLE "ServerAccess" ("serverId" TEXT NOT NULL REFERENCES "Server"("id") ON DELETE RESTRICT, "userId" TEXT NOT NULL, "role" TEXT NOT NULL, "grantedBy" TEXT NOT NULL, "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY ("serverId","userId"));
+CREATE INDEX "ServerAccess_userId_idx" ON "ServerAccess"("userId");
+CREATE TABLE "PlatformAccess" ("userId" TEXT PRIMARY KEY, "role" TEXT NOT NULL, "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE "DiscordAuthorization" ("userId" TEXT PRIMARY KEY, "credentials" TEXT NOT NULL, "expiresAt" TIMESTAMP(3) NOT NULL, "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE "AuditEvent" ("id" TEXT PRIMARY KEY, "serverId" TEXT REFERENCES "Server"("id") ON DELETE RESTRICT, "actorId" TEXT NOT NULL, "action" TEXT NOT NULL, "outcome" TEXT NOT NULL, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE INDEX "AuditEvent_serverId_createdAt_idx" ON "AuditEvent"("serverId","createdAt");

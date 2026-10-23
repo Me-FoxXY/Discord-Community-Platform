@@ -1,6 +1,6 @@
 import { auth, discordConfigured, devLoginEnabled } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import Link from "next/link";
+import { CommunityLink as Link } from "@/components/servers/Community";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { Container } from "@/components/ui/Container";
 import { GradientBlobs } from "@/components/decor/nature";
@@ -18,7 +18,12 @@ export default async function LoginPage({
   searchParams: Promise<{ callbackUrl?: string }>;
 }) {
   const sp = await searchParams;
-  const callbackUrl = sp.callbackUrl?.startsWith("/") && !sp.callbackUrl.startsWith("//") && !sp.callbackUrl.includes("\\") ? sp.callbackUrl : "/";
+  const callbackUrl =
+    sp.callbackUrl?.startsWith("/") &&
+    !sp.callbackUrl.startsWith("//") &&
+    !sp.callbackUrl.includes("\\")
+      ? sp.callbackUrl
+      : "/";
   const session = await auth();
   if (session?.user) redirect(callbackUrl);
 
@@ -31,13 +36,15 @@ export default async function LoginPage({
             <span className="grid h-10 w-10 place-items-center rounded-2xl bg-forest-grad text-white shadow-soft">
               <Leaf className="h-5 w-5" />
             </span>
-            <span className="font-display text-xl font-semibold text-forest-950">{site.name}</span>
+            <span className="font-display text-xl font-semibold text-forest-950">
+              {site.name}
+            </span>
           </Link>
 
           <h1 className="text-3xl text-forest-950">Welcome back</h1>
           <p className="mt-2 text-sm text-ink-soft">
-            Sign in with Discord to buy perks — your order is linked to your account so rewards reach the
-            right person.
+            Sign in with Discord to buy perks — your order is linked to your
+            account so rewards reach the right person.
           </p>
 
           <div className="mt-8">

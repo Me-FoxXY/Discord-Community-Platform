@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { CommunityLink as Link } from "@/components/servers/Community";
 import { Check, ArrowRight, Sparkles } from "lucide-react";
 import type { Plan, PlanAccent } from "@/config/plans";
 import { Button } from "@/components/ui/Button";
@@ -8,7 +8,12 @@ import { formatINR, cn } from "@/lib/utils";
 
 const accents: Record<
   PlanAccent,
-  { grad: string; chip: string; icon: string; btn: "primary" | "river" | "gold" }
+  {
+    grad: string;
+    chip: string;
+    icon: string;
+    btn: "primary" | "river" | "gold";
+  }
 > = {
   mint: {
     grad: "from-mint-400 to-forest-500",
@@ -30,7 +35,13 @@ const accents: Record<
   },
 };
 
-export function PricingCard({ plan, featured }: { plan: Plan; featured?: boolean }) {
+export function PricingCard({
+  plan,
+  featured,
+}: {
+  plan: Plan;
+  featured?: boolean;
+}) {
   const a = accents[plan.accent];
 
   return (
@@ -74,7 +85,9 @@ export function PricingCard({ plan, featured }: { plan: Plan; featured?: boolean
               {plan.emoji}
             </span>
             <div>
-              <h3 className="font-display text-xl font-semibold text-forest-950">{plan.name}</h3>
+              <h3 className="font-display text-xl font-semibold text-forest-950">
+                {plan.name}
+              </h3>
               <p className="text-sm text-ink-soft">{plan.tagline}</p>
             </div>
           </div>
@@ -84,11 +97,18 @@ export function PricingCard({ plan, featured }: { plan: Plan; featured?: boolean
             <span className="font-display text-5xl font-semibold text-forest-950">
               {formatINR(plan.price)}
             </span>
-            <span className="mb-1.5 text-sm text-ink-soft">/ {plan.durationLabel}</span>
+            <span className="mb-1.5 text-sm text-ink-soft">
+              / {plan.durationLabel}
+            </span>
           </div>
 
           {plan.flagship && (
-            <span className={cn("mt-3 inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold", a.chip)}>
+            <span
+              className={cn(
+                "mt-3 inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
+                a.chip,
+              )}
+            >
               <Sparkles className="h-3.5 w-3.5" /> Flagship experience
             </span>
           )}
@@ -108,10 +128,18 @@ export function PricingCard({ plan, featured }: { plan: Plan; featured?: boolean
                 <span
                   className={cn(
                     "text-sm leading-snug",
-                    f.highlight ? "font-semibold text-forest-900" : "text-ink-soft",
+                    f.highlight
+                      ? "font-semibold text-forest-900"
+                      : "text-ink-soft",
                   )}
                 >
-                  <Icon name={f.icon} className={cn("mr-1.5 inline h-4 w-4 -translate-y-0.5", a.icon)} />
+                  <Icon
+                    name={f.icon}
+                    className={cn(
+                      "mr-1.5 inline h-4 w-4 -translate-y-0.5",
+                      a.icon,
+                    )}
+                  />
                   {f.label}
                 </span>
               </li>
@@ -120,7 +148,12 @@ export function PricingCard({ plan, featured }: { plan: Plan; featured?: boolean
 
           {/* CTA */}
           <div className="mt-8 flex flex-col gap-2 pt-2">
-            <Button href={`/checkout?plan=${plan.slug}`} variant={featured ? a.btn : "outline"} size="lg" className="w-full">
+            <Button
+              href={`/checkout?plan=${plan.slug}`}
+              variant={featured ? a.btn : "outline"}
+              size="lg"
+              className="w-full"
+            >
               Get {plan.name}
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </Button>

@@ -1,8 +1,13 @@
+import { currentServerId, currentServer } from "@/lib/servers/context";
 import { randomBytes } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import type { Order } from "@prisma/client";
 
-export type OrderStatus = "awaiting_payment" | "pending_review" | "approved" | "rejected";
+export type OrderStatus =
+  | "awaiting_payment"
+  | "pending_review"
+  | "approved"
+  | "rejected";
 export class OrderConflictError extends Error {}
 
 export class DuplicateUtrError extends Error {
@@ -25,9 +30,13 @@ export type CreateOrderInput = {
 };
 
 export async function createOrder(input: CreateOrderInput): Promise<Order> {
+  const server = await currentServer();
   const note = `VD-${randomBytes(4).toString("hex").toUpperCase()}`;
   return prisma.order.create({
     data: {
+      serverId: server.id,
+      paymentUpiId: server.upiId,
+      paymentPayee: server.payeeName,
       planSlug: input.planSlug,
       planName: input.planName,
       amount: input.amount,
@@ -35,7 +44,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       discountAmount: input.discountAmount,
       couponCode: input.couponCode,
       deliveryRoleId: input.roleId ?? null,
-      deliveryGuildId: process.env.DISCORD_GUILD_ID || null,
+      deliveryGuildId: server.guildId,
       currency: "INR",
       note,
       status: "awaiting_payment",
@@ -45,8 +54,10 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
   });
 }
 
-export function getOrder(id: string): Promise<Order | null> {
-  return prisma.order.findUnique({ where: { id } });
+export async function getOrder(id: string): Promise<Order | null> {
+  return prisma.order.findUnique({
+    where: { id, serverId: await currentServerId() },
+  });
 }
 
 export type SubmitProofInput = {
@@ -75,7 +86,11 @@ export async function submitProof(input: SubmitProofInput): Promise<Order> {
 
   try {
     return await prisma.order.update({
-      where: { id: input.orderId, status: "awaiting_payment" },
+      where: {
+        id: input.orderId,
+        serverId: await currentServerId(),
+        status: "awaiting_payment",
+      },
       data: {
         utr: input.utr,
         screenshotPath: input.screenshotPath,
@@ -85,26 +100,40 @@ export async function submitProof(input: SubmitProofInput): Promise<Order> {
       },
     });
   } catch (err: unknown) {
-    if (typeof err === "object" && err !== null && "code" in err && err.code === "P2025") {
+    if (
+      typeof err === "object" &&
+      err !== null &&
+      "code" in err &&
+      err.code === "P2025"
+    ) {
       throw new OrderConflictError("Payment proof was already submitted.");
     }
     // Unique constraint race on UTR.
-    if (typeof err === "object" && err !== null && "code" in err && (err as { code?: string }).code === "P2002") {
+    if (
+      typeof err === "object" &&
+      err !== null &&
+      "code" in err &&
+      (err as { code?: string }).code === "P2002"
+    ) {
       throw new DuplicateUtrError();
     }
     throw err;
   }
 }
 
-export function listPending(): Promise<Order[]> {
+export async function listPending(): Promise<Order[]> {
   return prisma.order.findMany({
-    where: { status: "pending_review" },
+    where: { serverId: await currentServerId(), status: "pending_review" },
     orderBy: { createdAt: "asc" },
   });
 }
 
-export function listRecent(limit = 50): Promise<Order[]> {
-  return prisma.order.findMany({ orderBy: { createdAt: "desc" }, take: limit });
+export async function listRecent(limit = 50): Promise<Order[]> {
+  return prisma.order.findMany({
+    where: { serverId: await currentServerId() },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+  });
 }
 
 export async function reviewOrder(
@@ -114,13 +143,36 @@ export async function reviewOrder(
   note?: string,
 ): Promise<Order> {
   const status: OrderStatus = action === "approve" ? "approved" : "rejected";
-  const result = await prisma.order.updateMany({
-    where: { id, status: "pending_review", utr: { not: null }, screenshotPath: { not: null } },
-    data: {
-      status, reviewedBy: reviewer, reviewNote: note ?? null,
-      deliveryStatus: action === "approve" ? "pending" : "not_requested",
-    },
+  return prisma.$transaction(async (tx) => {
+    const result = await tx.order.updateMany({
+      where: {
+        id,
+        serverId: await currentServerId(),
+        status: "pending_review",
+        utr: { not: null },
+        screenshotPath: { not: null },
+      },
+      data: {
+        status,
+        reviewedBy: reviewer,
+        reviewNote: note ?? null,
+        deliveryStatus: action === "approve" ? "pending" : "not_requested",
+      },
+    });
+    if (!result.count)
+      throw new OrderConflictError(
+        "Only an order awaiting review with payment proof can be reviewed.",
+      );
+    await tx.auditEvent.create({
+      data: {
+        serverId: await currentServerId(),
+        actorId: reviewer,
+        action: `order.${action}`,
+        outcome: "success",
+      },
+    });
+    return tx.order.findUniqueOrThrow({
+      where: { id, serverId: await currentServerId() },
+    });
   });
-  if (!result.count) throw new OrderConflictError("Only an order awaiting review with payment proof can be reviewed.");
-  return prisma.order.findUniqueOrThrow({ where: { id } });
 }

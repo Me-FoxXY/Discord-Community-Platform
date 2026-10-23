@@ -1,8 +1,15 @@
 "use client";
+import { communityFetch } from "@/components/servers/Community";
 
-import useSWR from "swr";
-import Link from "next/link";
-import { CheckCircle2, Clock, Hourglass, XCircle, PartyPopper } from "lucide-react";
+import { useCommunitySWR as useSWR } from "@/components/servers/Community";
+import { CommunityLink as Link } from "@/components/servers/Community";
+import {
+  CheckCircle2,
+  Clock,
+  Hourglass,
+  XCircle,
+  PartyPopper,
+} from "lucide-react";
 import { DiscordIcon } from "@/components/icons/brands";
 import { Button } from "@/components/ui/Button";
 import { site } from "@/config/site";
@@ -24,7 +31,7 @@ export type OrderDTO = {
 };
 
 const fetcher = async (url: string) => {
-  const response = await fetch(url);
+  const response = await communityFetch(url);
   if (!response.ok) throw new Error("Could not refresh this order.");
   return response.json();
 };
@@ -61,23 +68,40 @@ const steps = ["Payment submitted", "Payment approved", "Role delivered"];
 export function OrderStatusView({ initial }: { initial: OrderDTO }) {
   const { data } = useSWR<OrderDTO>(`/api/orders/${initial.id}`, fetcher, {
     fallbackData: initial,
-    refreshInterval: (d) => (d && (d.deliveryStatus === "delivered" || d.status === "rejected") ? 0 : 8000),
+    refreshInterval: (d) =>
+      d && (d.deliveryStatus === "delivered" || d.status === "rejected")
+        ? 0
+        : 8000,
     revalidateOnFocus: true,
   });
 
   const order = data ?? initial;
   const c = config[order.status];
   const StatusIcon = c.icon;
-  const activeStep = order.deliveryStatus === "delivered" ? 2 : order.status === "approved" ? 1 : 0;
+  const activeStep =
+    order.deliveryStatus === "delivered"
+      ? 2
+      : order.status === "approved"
+        ? 1
+        : 0;
 
   return (
     <div className="mx-auto max-w-xl">
       <div className="rounded-5xl border border-forest-100/70 bg-white/85 p-8 text-center shadow-card backdrop-blur sm:p-10">
-        <span className={cn("mx-auto grid h-20 w-20 place-items-center rounded-4xl", c.tone)}>
+        <span
+          className={cn(
+            "mx-auto grid h-20 w-20 place-items-center rounded-4xl",
+            c.tone,
+          )}
+        >
           <StatusIcon className="h-9 w-9" />
         </span>
-        <h1 className="mt-6 font-display text-3xl text-forest-950">{c.title}</h1>
-        <p className="mx-auto mt-3 max-w-md text-pretty leading-relaxed text-ink-soft">{c.desc}</p>
+        <h1 className="mt-6 font-display text-3xl text-forest-950">
+          {c.title}
+        </h1>
+        <p className="mx-auto mt-3 max-w-md text-pretty leading-relaxed text-ink-soft">
+          {c.desc}
+        </p>
         {order.status === "approved" && (
           <p className="mt-4 rounded-2xl bg-mist p-4 text-sm" role="status">
             {order.deliveryStatus === "delivered"
@@ -103,15 +127,26 @@ export function OrderStatusView({ initial }: { initial: OrderDTO }) {
                   <span
                     className={cn(
                       "grid h-8 w-8 place-items-center rounded-full text-xs font-bold transition-colors",
-                      i <= activeStep ? "bg-forest-500 text-white" : "bg-forest-100 text-forest-400",
+                      i <= activeStep
+                        ? "bg-forest-500 text-white"
+                        : "bg-forest-100 text-forest-400",
                     )}
                   >
-                    {i < activeStep || order.deliveryStatus === "delivered" ? <CheckCircle2 className="h-4 w-4" /> : i + 1}
+                    {i < activeStep || order.deliveryStatus === "delivered" ? (
+                      <CheckCircle2 className="h-4 w-4" />
+                    ) : (
+                      i + 1
+                    )}
                   </span>
                   <span className="mt-2 text-xs text-ink-soft">{s}</span>
                 </div>
                 {i < steps.length - 1 && (
-                  <span className={cn("h-0.5 w-8 rounded-full", i < activeStep ? "bg-forest-400" : "bg-forest-100")} />
+                  <span
+                    className={cn(
+                      "h-0.5 w-8 rounded-full",
+                      i < activeStep ? "bg-forest-400" : "bg-forest-100",
+                    )}
+                  />
                 )}
               </div>
             ))}
@@ -126,20 +161,28 @@ export function OrderStatusView({ initial }: { initial: OrderDTO }) {
           </div>
           <div>
             <dt className="text-ink-soft">Amount</dt>
-            <dd className="font-semibold text-forest-900">{formatINR(order.amount)}</dd>
+            <dd className="font-semibold text-forest-900">
+              {formatINR(order.amount)}
+            </dd>
           </div>
           <div>
             <dt className="text-ink-soft">Order note</dt>
-            <dd className="font-mono font-semibold text-forest-900">{order.note}</dd>
+            <dd className="font-mono font-semibold text-forest-900">
+              {order.note}
+            </dd>
           </div>
           <div>
             <dt className="text-ink-soft">UTR</dt>
-            <dd className="font-mono font-semibold text-forest-900">{order.utr ?? "—"}</dd>
+            <dd className="font-mono font-semibold text-forest-900">
+              {order.utr ?? "—"}
+            </dd>
           </div>
         </dl>
         {order.couponCode && (
           <p className="mt-3 text-sm text-forest-700">
-            Coupon {order.couponCode}: {formatINR(order.subtotal)} − {formatINR(order.discountAmount)} = {formatINR(order.amount)} payable.
+            Coupon {order.couponCode}: {formatINR(order.subtotal)} −{" "}
+            {formatINR(order.discountAmount)} = {formatINR(order.amount)}{" "}
+            payable.
           </p>
         )}
 
@@ -166,7 +209,14 @@ export function OrderStatusView({ initial }: { initial: OrderDTO }) {
       </div>
 
       <p className="mt-4 text-center text-xs text-ink-soft">
-        Need help? Ask in <Link href={site.discordInvite} className="font-medium text-forest-600 underline">our Discord</Link>.
+        Need help? Ask in{" "}
+        <Link
+          href={site.discordInvite}
+          className="font-medium text-forest-600 underline"
+        >
+          our Discord
+        </Link>
+        .
       </p>
     </div>
   );

@@ -1,19 +1,34 @@
 "use client";
+import { useCommunity } from "@/components/servers/Community";
 
-import Link from "next/link";
+import { CommunityLink as Link } from "@/components/servers/Community";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { signOut, useSession } from "next-auth/react";
-import { Leaf, Menu, X, LogOut, ShieldCheck, LogIn, ChevronDown } from "lucide-react";
+import {
+  Leaf,
+  Menu,
+  X,
+  LogOut,
+  ShieldCheck,
+  LogIn,
+  ChevronDown,
+} from "lucide-react";
 import { DiscordIcon } from "@/components/icons/brands";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
-import { navLinks, site } from "@/config/site";
+import { navLinks, site as defaults } from "@/config/site";
 import { cn } from "@/lib/utils";
 
 export function Navbar() {
+  const community = useCommunity();
+  const site = {
+    ...defaults,
+    name: community.name,
+    discordInvite: community.inviteUrl || "/servers",
+  };
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const user = session?.user;
@@ -54,20 +69,25 @@ export function Navbar() {
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-forest-grad text-white shadow-soft">
               <Leaf className="h-5 w-5" />
             </span>
-            <span className="font-display text-lg font-semibold text-forest-950">{site.name}</span>
+            <span className="font-display text-lg font-semibold text-forest-950">
+              {site.name}
+            </span>
           </Link>
 
           {/* Desktop nav */}
           <div className="hidden items-center gap-1 md:flex">
             {navLinks.map((l) => {
-              const active = l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
+              const active =
+                l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
               return (
                 <Link
                   key={l.href}
                   href={l.href}
                   className={cn(
                     "rounded-full px-4 py-2 text-sm font-medium transition-colors",
-                    active ? "bg-forest-50 text-forest-800" : "text-ink-soft hover:bg-forest-50 hover:text-forest-800",
+                    active
+                      ? "bg-forest-50 text-forest-800"
+                      : "text-ink-soft hover:bg-forest-50 hover:text-forest-800",
                   )}
                 >
                   {l.label}
@@ -88,7 +108,13 @@ export function Navbar() {
               <DiscordIcon className="h-5 w-5" />
             </a>
 
-            {status === "loading" ? (<span role="status" aria-label="Loading account" className="h-9 w-24 animate-pulse rounded-full bg-forest-100" />) : user ? (
+            {status === "loading" ? (
+              <span
+                role="status"
+                aria-label="Loading account"
+                className="h-9 w-24 animate-pulse rounded-full bg-forest-100"
+              />
+            ) : user ? (
               <div className="relative hidden md:block">
                 <button
                   type="button"
@@ -100,7 +126,12 @@ export function Navbar() {
                   <span className="max-w-[9rem] truncate text-sm font-medium text-forest-900">
                     {user.name}
                   </span>
-                  <ChevronDown className={cn("h-4 w-4 text-forest-400 transition-transform", menuOpen && "rotate-180")} />
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 text-forest-400 transition-transform",
+                      menuOpen && "rotate-180",
+                    )}
+                  />
                 </button>
                 <AnimatePresence>
                   {menuOpen && (
@@ -123,14 +154,16 @@ export function Navbar() {
                             href="/admin"
                             className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-forest-800 hover:bg-forest-50"
                           >
-                            <ShieldCheck className="h-4 w-4 text-forest-500" /> Admin dashboard
+                            <ShieldCheck className="h-4 w-4 text-forest-500" />{" "}
+                            Admin dashboard
                           </Link>
                         )}
                         <Link
                           href="/shop"
                           className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-forest-800 hover:bg-forest-50"
                         >
-                          <Leaf className="h-4 w-4 text-forest-500" /> Browse plans
+                          <Leaf className="h-4 w-4 text-forest-500" /> Browse
+                          plans
                         </Link>
                         <button
                           type="button"
@@ -145,12 +178,22 @@ export function Navbar() {
                 </AnimatePresence>
               </div>
             ) : (
-              <Button href="/login" variant="outline" size="sm" className="hidden md:inline-flex">
+              <Button
+                href="/login"
+                variant="outline"
+                size="sm"
+                className="hidden md:inline-flex"
+              >
                 <LogIn className="h-4 w-4" /> Login
               </Button>
             )}
 
-            <Button href="/shop" variant="primary" size="sm" className="hidden md:inline-flex">
+            <Button
+              href="/shop"
+              variant="primary"
+              size="sm"
+              className="hidden md:inline-flex"
+            >
               Get Perks
             </Button>
 
@@ -162,7 +205,11 @@ export function Navbar() {
               aria-label="Toggle menu"
               aria-expanded={mobileOpen}
             >
-              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              {mobileOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
             </button>
           </div>
         </nav>
@@ -189,21 +236,37 @@ export function Navbar() {
                 ))}
               </div>
               <div className="mt-2 flex flex-col gap-2 border-t border-forest-100 pt-3">
-                {status === "loading" ? (<span role="status" aria-label="Loading account" className="h-9 w-24 animate-pulse rounded-full bg-forest-100" />) : user ? (
+                {status === "loading" ? (
+                  <span
+                    role="status"
+                    aria-label="Loading account"
+                    className="h-9 w-24 animate-pulse rounded-full bg-forest-100"
+                  />
+                ) : user ? (
                   <>
                     <div className="flex items-center gap-2 px-2">
                       <Avatar image={user.image} initials={initials} />
-                      <span className="text-sm font-medium text-forest-900">{user.name}</span>
+                      <span className="text-sm font-medium text-forest-900">
+                        {user.name}
+                      </span>
                     </div>
                     {user.isAdmin && (
-                      <Button href="/admin" variant="outline" className="w-full">
+                      <Button
+                        href="/admin"
+                        variant="outline"
+                        className="w-full"
+                      >
                         <ShieldCheck className="h-4 w-4" /> Admin
                       </Button>
                     )}
                     <Button href="/shop" variant="primary" className="w-full">
                       Get Perks
                     </Button>
-                    <Button variant="ghost" className="w-full" onClick={() => signOut({ callbackUrl: "/" })}>
+                    <Button
+                      variant="ghost"
+                      className="w-full"
+                      onClick={() => signOut({ callbackUrl: "/" })}
+                    >
                       <LogOut className="h-4 w-4" /> Sign out
                     </Button>
                   </>
@@ -226,7 +289,13 @@ export function Navbar() {
   );
 }
 
-function Avatar({ image, initials }: { image?: string | null; initials: string }) {
+function Avatar({
+  image,
+  initials,
+}: {
+  image?: string | null;
+  initials: string;
+}) {
   if (image) {
     return (
       <Image

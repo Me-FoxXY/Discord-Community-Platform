@@ -2,7 +2,11 @@
 
 A separate successor to Discord-Package. Payments remain manual: members pay through UPI, submit their UTR and screenshot, and an admin approves or rejects the payment.
 
-## Current milestone
+## Multi-server management
+
+Server registration, staff permissions, isolated storefronts, and database-backed community settings are now available on this branch. Read [MULTI_SERVER.md](MULTI_SERVER.md) for the required migration/import steps, secret setup, operating limits, and live validation checklist. Payments remain manual.
+
+## Existing purchase flow
 
 The single-server purchase flow now separates payment approval from Discord role delivery:
 
@@ -13,7 +17,7 @@ The single-server purchase flow now separates payment approval from Discord role
 - Failed deliveries retain the approved payment and show an admin retry action with a cooldown.
 - The buyer sees role delivery separately from payment status.
 
-Only the configured plan role is automated. XP boosts, personal roles/channels, membership expiry, multi-server support, and scheduled processing are future milestones. Existing plan descriptions are inherited product content; do not launch sales until the advertised benefits are supported or fulfilled by staff.
+Only the configured plan role is automated. XP boosts, personal roles/channels, membership expiry, and scheduled processing are future milestones. Existing plan descriptions are inherited product content; do not launch sales until the advertised benefits are supported or fulfilled by staff.
 
 See [PLAN.md](PLAN.md) for the build order. Vercel is the hosting target; portfolio presentation comes last.
 
@@ -105,7 +109,7 @@ No GitHub publication or Vercel deployment has happened yet.
 5. Choose primary and accent colors and click **Save colors**. Visitors receive the saved theme. Bright colors are darkened for readable button labels.
 6. Set `DISCORD_GUILD_ID` and `DISCORD_BOT_TOKEN` and install the bot in that server. The homepage reads its Discord banner, including animated GIF banners, automatically. Missing banners or Discord errors show a themed placeholder. Updates may take about five minutes.
 
-Payments still require manual verification. Product duration describes the offer; automatic role expiry is not implemented. This version remains one configured server per deployment; shared multi-server tenancy is future work.
+Payments still require manual verification. Product duration describes the offer; automatic role expiry is not implemented. Each registered server has its own configuration and storefront. Follow MULTI_SERVER.md when upgrading.
 
 For local admin UI testing only, run PowerShell with `$env:ADMIN_DISCORD_IDS='000000000000000000'` before `npm run dev`, then use Dev login. This override lasts for that terminal process. Never add this mock ID to production settings. Stop that process and use a fresh terminal afterwards.
 
