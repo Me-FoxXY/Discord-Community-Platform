@@ -38,6 +38,7 @@ export async function POST(req: Request) {
     subtotal: quote.subtotal,
     discountAmount: quote.discountAmount,
     couponCode: quote.couponCode,
+    roleId: plan.roleId,
     discordUserId: session.user.discordId,
     discordUsername: session.user.name ?? "Unknown",
   });

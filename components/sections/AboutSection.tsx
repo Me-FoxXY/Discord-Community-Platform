@@ -1,6 +1,6 @@
 import { Container } from "@/components/ui/Container";
 import { Reveal } from "@/components/ui/Reveal";
-import { AnimatedCounter } from "@/components/ui/AnimatedCounter";
+import { LiveMemberCount } from "@/components/community/LiveMemberCount";
 import { TopographyLines } from "@/components/decor/nature";
 import { aboutParagraphs, aboutValues } from "@/config/content";
 import { Check, Leaf, Sparkles, Users } from "lucide-react";
@@ -48,7 +48,7 @@ export function AboutSection() {
                   <p className="mt-6 max-w-xs font-display text-2xl text-forest-900">
                     &ldquo;It feels less like a server and more like a treehouse.&rdquo;
                   </p>
-                  <p className="mt-2 text-sm text-forest-700">— a very real member</p>
+                  <p className="mt-2 text-sm text-forest-700">A space to make your own</p>
                 </div>
               </div>
 
@@ -59,9 +59,9 @@ export function AboutSection() {
                 </span>
                 <div className="leading-tight">
                   <div className="text-sm font-bold text-forest-900">
-                    <AnimatedCounter value={24800} compact suffix="+" />
+                    <LiveMemberCount />
                   </div>
-                  <div className="text-xs text-ink-soft">members & growing</div>
+                  <div className="text-xs text-ink-soft">On Discord</div>
                 </div>
               </div>
               <div className="absolute -right-2 bottom-8 flex items-center gap-2 rounded-2xl bg-white/85 px-3.5 py-2.5 shadow-card backdrop-blur sm:-right-5">
@@ -70,7 +70,7 @@ export function AboutSection() {
                 </span>
                 <div className="leading-tight">
                   <div className="text-sm font-bold text-forest-900">
-                    <AnimatedCounter value={4} suffix="+ yrs" />
+                    A place to belong
                   </div>
                   <div className="text-xs text-ink-soft">growing strong</div>
                 </div>

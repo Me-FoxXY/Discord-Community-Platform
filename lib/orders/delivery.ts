@@ -31,9 +31,12 @@ export async function deliverOrder(id: string) {
 
   const order = await prisma.order.findUniqueOrThrow({ where: { id } });
   try {
-    const target = order.deliveryGuildId && order.deliveryRoleId
-      ? { guildId: order.deliveryGuildId, roleId: order.deliveryRoleId }
+    const target = order.deliveryRoleId
+      ? { guildId: order.deliveryGuildId || process.env.DISCORD_GUILD_ID?.trim() || "", roleId: order.deliveryRoleId }
       : roleTarget(order.planSlug);
+    if (!/^[1-9]\d{16,19}$/.test(target.guildId)) {
+      throw new RoleDeliveryError("Configure the Discord server before delivering.");
+    }
     // Preserve the first target across retries, even if settings later change.
     await prisma.order.update({
       where: { id, deliveryToken: token },

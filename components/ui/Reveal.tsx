@@ -23,7 +23,7 @@ export function Reveal({ children, className, variants = fadeInUp, delay = 0 }: 
     <motion.div
       className={className}
       variants={variants}
-      initial="hidden"
+      initial={false}
       whileInView="visible"
       viewport={inViewport}
       transition={{ delay }}
@@ -55,7 +55,7 @@ export function StaggerGroup({
     <motion.div
       className={className}
       variants={staggerContainer(stagger, delayChildren)}
-      initial="hidden"
+      initial={false}
       whileInView="visible"
       viewport={inViewport}
     >

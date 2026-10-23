@@ -7,7 +7,8 @@ import { ComparisonTable } from "@/components/shop/ComparisonTable";
 import { HowItWorks } from "@/components/shop/HowItWorks";
 import { FaqSection } from "@/components/sections/FaqSection";
 import { StaggerGroup, StaggerItem } from "@/components/ui/Reveal";
-import { plans } from "@/config/plans";
+import { listProducts } from "@/lib/catalog";
+export const dynamic = "force-dynamic";
 import { site } from "@/config/site";
 import { ShoppingBag } from "lucide-react";
 
@@ -17,7 +18,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/shop" },
 };
 
-export default function ShopPage() {
+export default async function ShopPage() {
+  const plans = await listProducts();
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "ItemList",
@@ -35,7 +37,7 @@ export default function ShopPage() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
 
       <PageHeader
         eyebrow={
@@ -48,13 +50,14 @@ export default function ShopPage() {
             Choose your <span className="text-gradient">Verdanta</span> perk
           </>
         }
-        subtitle="Three tiers, one goal — help you stand out and level up in the community you love."
+        subtitle="Explore the products and perks available for your community."
       />
 
       <section className="relative pb-8">
         <Container>
           <StaggerGroup className="grid items-stretch gap-6 lg:grid-cols-3">
-            {plans.map((p) => (
+            {plans.length === 0 && <p role="status" className="col-span-full rounded-2xl bg-white/80 p-8 text-center text-ink-soft">No products are available right now. Please check back soon.</p>}
+          {plans.map((p) => (
               <StaggerItem key={p.slug} className="h-full">
                 <PricingCard plan={p} featured={p.popular} />
               </StaggerItem>
@@ -67,7 +70,7 @@ export default function ShopPage() {
         <Container>
           <SectionHeading title="Compare every plan" subtitle="See exactly what you get at each tier." />
           <div className="mt-12">
-            <ComparisonTable />
+            <ComparisonTable plans={plans} />
           </div>
         </Container>
       </section>

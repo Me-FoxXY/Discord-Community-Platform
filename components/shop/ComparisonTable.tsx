@@ -1,17 +1,10 @@
 import Link from "next/link";
 import { Check, Minus } from "lucide-react";
-import { plans } from "@/config/plans";
+import type { Plan } from "@/config/plans";
 import { formatINR, cn } from "@/lib/utils";
 
 type Cell = boolean | string;
-const rows: { label: string; values: [Cell, Cell, Cell] }[] = [
-  { label: "Personal Role", values: [true, true, true] },
-  { label: "Nickname Change", values: [true, true, true] },
-  { label: "Extra XP", values: ["60%", "70%", "80%"] },
-  { label: "Soundboard Permission", values: [false, true, true] },
-  { label: "Personal Voice Channel", values: [false, "Up to 1 month", "Up to 2 months"] },
-  { label: "Validity", values: ["30+ days", "30+ days", "30+ days"] },
-];
+
 
 function CellView({ value }: { value: Cell }) {
   if (value === true)
@@ -29,7 +22,9 @@ function CellView({ value }: { value: Cell }) {
   return <span className="text-sm font-medium text-forest-800">{value}</span>;
 }
 
-export function ComparisonTable() {
+export function ComparisonTable({ plans }: { plans: Plan[] }) {
+ const labels = [...new Set(plans.flatMap(p => p.features.map(f => f.label)))];
+ const rows = labels.map(label => ({label, values: plans.map(p => p.features.some(f => f.label === label))}));
   return (
     <div className="overflow-x-auto rounded-4xl border border-forest-100/70 bg-white/80 shadow-soft">
       <table className="w-full min-w-[640px] border-collapse text-left">

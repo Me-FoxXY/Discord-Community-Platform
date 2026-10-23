@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getPlan, plans, relatedPlans } from "@/config/plans";
+import { getPlan, listProducts } from "@/lib/catalog";
+export const dynamic = "force-dynamic";
 import { site } from "@/config/site";
 import { Container } from "@/components/ui/Container";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -17,9 +18,6 @@ import { GradientBlobs } from "@/components/decor/nature";
 import { formatINR } from "@/lib/utils";
 import { ArrowLeft, ArrowRight, Check, Clock, ShieldCheck, Sparkles } from "lucide-react";
 
-export function generateStaticParams() {
-  return plans.map((p) => ({ slug: p.slug }));
-}
 
 export async function generateMetadata({
   params,
@@ -27,7 +25,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const plan = getPlan(slug);
+  const plan = await getPlan(slug);
   if (!plan) return { title: "Plan not found" };
   return {
     title: `${plan.name} — ${formatINR(plan.price)} / ${plan.durationLabel}`,
@@ -43,10 +41,10 @@ export async function generateMetadata({
 
 export default async function PlanPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const plan = getPlan(slug);
+  const plan = await getPlan(slug);
   if (!plan) notFound();
 
-  const related = relatedPlans(slug);
+  const related = (await listProducts()).filter((p) => p.slug !== slug);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -65,7 +63,7 @@ export default async function PlanPage({ params }: { params: Promise<{ slug: str
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
 
       {/* Hero */}
       <section className="relative overflow-hidden pb-12 pt-32 sm:pt-40">

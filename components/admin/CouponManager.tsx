@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { plans } from "@/config/plans";
+import type { Plan } from "@/config/plans";
 import { formatINR } from "@/lib/utils";
 
 export type CouponDTO = {
@@ -11,7 +11,7 @@ export type CouponDTO = {
 };
 const inputClass = "mt-1 w-full rounded-xl border border-forest-200 bg-white p-3 text-forest-950";
 
-export function CouponManager({ initial }: { initial: CouponDTO[] }) {
+export function CouponManager({ initial, plans }: { initial: CouponDTO[]; plans: Plan[] }) {
   const [coupons, setCoupons] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");

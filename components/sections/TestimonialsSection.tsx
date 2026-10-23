@@ -13,6 +13,7 @@ const avatarBg: Record<Testimonial["accent"], string> = {
 };
 
 export function TestimonialsSection() {
+  if (!testimonials.length) return null;
   return (
     <section className="relative py-20 sm:py-28">
       <Container>

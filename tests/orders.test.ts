@@ -98,3 +98,14 @@ describe("delivery attempts", () => {
     });
   });
 });
+
+it('retains a custom role when the guild is configured after checkout', async () => {
+ const previousGuild = process.env.DISCORD_GUILD_ID;
+ process.env.DISCORD_GUILD_ID = '123456789012345678';
+ try {
+  db.findUniqueOrThrow.mockResolvedValue({ ...order, planSlug: 'creator-pass', deliveryGuildId: null });
+  await deliverOrder(order.id);
+  expect(discord.roleTarget).not.toHaveBeenCalled();
+  expect(discord.grantRole).toHaveBeenCalledWith('123456789012345678', order.deliveryRoleId, order.discordUserId);
+ } finally { if (previousGuild === undefined) delete process.env.DISCORD_GUILD_ID; else process.env.DISCORD_GUILD_ID = previousGuild; }
+});

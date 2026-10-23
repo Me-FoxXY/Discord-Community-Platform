@@ -18,17 +18,25 @@ export function LoginForm({
   const [devName, setDevName] = useState("Test Member");
   const [loading, setLoading] = useState<"discord" | "dev" | null>(null);
 
+  const [error, setError] = useState("");
+  async function login(provider: "discord" | "dev") {
+    setLoading(provider); setError("");
+    try {
+      const result = await signIn(provider, { redirect: false, redirectTo: callbackUrl, ...(provider === "dev" ? { username: devName } : {}) });
+      if (!result || result.error) throw new Error("Sign-in failed. Please try again.");
+      window.location.assign(result.url || callbackUrl);
+    } catch (error) { setError(error instanceof Error ? error.message : "Sign-in failed."); setLoading(null); }
+  }
+
   return (
-    <div className="space-y-5">
+    <div className="min-w-0 space-y-5">
+      {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
       {discordConfigured ? (
         <Button
           variant="primary"
           size="lg"
           className="w-full"
-          onClick={() => {
-            setLoading("discord");
-            signIn("discord", { callbackUrl });
-          }}
+          onClick={() => login("discord")}
           disabled={loading !== null}
         >
           {loading === "discord" ? (
@@ -50,20 +58,17 @@ export function LoginForm({
           <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-forest-500">
             Dev login (local testing)
           </p>
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex min-w-0 flex-col gap-3">
             <input
               value={devName}
               onChange={(e) => setDevName(e.target.value)}
               placeholder="Display name"
               aria-label="Dev login display name"
-              className="h-11 flex-1 rounded-full border border-forest-200 bg-white px-4 text-sm outline-none focus:border-forest-400"
+              className="h-11 w-full min-w-0 rounded-full border border-forest-200 bg-white px-4 text-sm outline-none focus:border-forest-400"
             />
             <Button
               variant="outline"
-              onClick={() => {
-                setLoading("dev");
-                signIn("dev", { username: devName, callbackUrl });
-              }}
+              onClick={() => login("dev")}
               disabled={loading !== null}
             >
               {loading === "dev" ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}

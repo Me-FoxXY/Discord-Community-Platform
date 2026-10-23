@@ -1,3 +1,4 @@
+vi.mock("@/lib/catalog", async () => { const { plans } = await import("@/config/plans"); return { getPlan: async (slug: string) => plans.find(p => p.slug === slug) }; });
 import { beforeEach, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   auth: vi.fn(), findUnique: vi.fn(), createOrder: vi.fn(), buildUpiIntent: vi.fn(), qrSvg: vi.fn(),

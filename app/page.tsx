@@ -7,9 +7,11 @@ import { ShowcaseSection } from "@/components/sections/ShowcaseSection";
 import { TestimonialsSection } from "@/components/sections/TestimonialsSection";
 import { FaqSection } from "@/components/sections/FaqSection";
 import { site } from "@/config/site";
-import { plans } from "@/config/plans";
+import { listProducts } from "@/lib/catalog";
+export const dynamic = "force-dynamic";
 
-export default function Home() {
+export default async function Home() {
+  const plans = await listProducts();
   // Organization + Product structured data for SEO.
   const jsonLd = {
     "@context": "https://schema.org",
@@ -31,13 +33,13 @@ export default function Home() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
       <Hero />
       <AboutSection />
       <StatsSection />
       <WhyJoinSection />
-      <PricingPreview />
+      <PricingPreview plans={plans} />
       <ShowcaseSection />
       <TestimonialsSection />
       <FaqSection />

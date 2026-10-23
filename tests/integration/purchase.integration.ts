@@ -5,6 +5,7 @@ const discord = vi.hoisted(() => ({ grantRole: vi.fn() }));
 vi.mock('@/lib/discord/roles', async (original) => ({
   ...await original<typeof import('@/lib/discord/roles')>(), grantRole: discord.grantRole,
 }));
+vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 vi.mock('@/lib/auth', () => ({ auth: async () => ({ user: { discordId: '323456789012345678', name: 'Integration Buyer', isAdmin: true } }) }));
 import { prisma } from '@/lib/prisma';
 import { createOrder, reviewOrder, submitProof } from '@/lib/orders/store';
@@ -16,6 +17,7 @@ import { GET as readOrder } from '@/app/api/orders/[id]/route';
 import { buildUpiIntent } from '@/lib/payments/provider';
 
 const ids: string[] = [];
+const productSlug = `test-${randomUUID().slice(0,8)}`;
 let isolated = false;
 const couponCode = `TEST_${randomUUID().slice(0, 8).toUpperCase()}`;
 beforeAll(async () => {
@@ -33,6 +35,7 @@ afterAll(async () => {
   if (!isolated) return;
   await prisma.order.deleteMany({ where: { id: { in: ids } } });
   await prisma.coupon.deleteMany({ where: { code: couponCode } });
+  await prisma.product.deleteMany({ where: { slug: productSlug } });
   await prisma.$disconnect();
   vi.unstubAllEnvs();
 });
@@ -109,4 +112,24 @@ it('enforces UTR uniqueness under simultaneous proof submission', async () => {
   })));
   expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
   expect(await prisma.order.count({ where: { utr } })).toBe(1);
+});
+
+
+it('keeps purchased price and role when an admin edits or hides a product', async () => {
+ const { POST: addProduct, PATCH: editProduct } = await import('@/app/api/admin/products/route');
+ const input = { slug: productSlug, name: 'Creator', price: 99, durationDays: 30, tagline: '', description: 'Creator perks', benefits: ['Creator room'], roleId: '423456789012345678', enabled: true };
+ const request = (body: unknown) => new Request('http://localhost/api', { method: 'POST', body: JSON.stringify(body) });
+ expect((await addProduct(request(input))).status).toBe(200);
+ const response = await checkout(request({ planSlug: productSlug, amount: 1 }));
+ expect(response.status).toBe(200);
+ const purchase = await response.json(); ids.push(purchase.orderId);
+ expect(purchase.amount).toBe(99);
+ expect((await editProduct(request({ ...input, price: 199, roleId: '523456789012345678', enabled: false }))).status).toBe(200);
+ expect((await checkout(request({ planSlug: productSlug }))).status).toBe(400);
+ const stored = await prisma.order.findUniqueOrThrow({ where: { id: purchase.orderId } });
+ expect(stored.amount).toBe(99); expect(stored.deliveryRoleId).toBe(input.roleId);
+ await submitProof({ orderId: stored.id, utr: randomUUID(), screenshotPath: 'test-proof', screenshotHash: randomUUID() });
+ await reviewOrder(stored.id, 'approve', 'admin');
+ discord.grantRole.mockClear(); await deliverOrder(stored.id);
+ expect(discord.grantRole).toHaveBeenCalledWith('123456789012345678', input.roleId, '323456789012345678');
 });

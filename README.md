@@ -95,3 +95,22 @@ The role integration follows Discord's [Add Guild Member Role](https://docs.disc
 Use a Vercel server deployment and hosted PostgreSQL, not GitHub Pages. Current payment screenshots are Base64 data in PostgreSQL behind an authenticated route; private object storage is planned. Current retries are admin-triggered, not a scheduled worker. Cross-order/global Discord throttling is still needed before scaling delivery to multiple communities.
 
 No GitHub publication or Vercel deployment has happened yet.
+
+## Products, colors, and the server banner
+
+1. Apply migrations with `npm run db:migrate`. The original three plans are copied into the product catalog automatically.
+2. Sign in with a Discord account listed in `ADMIN_DISCORD_IDS`, then open `/admin`.
+3. Under **Products & appearance**, choose an existing product to edit or choose **Add a new product**. Set its price, duration, description, benefits, and Discord role ID. Publish it when ready.
+4. Uncheck **Published in shop** to stop new purchases. Existing orders keep their saved price and configured role target. New products require a role ID before publication; original plans can still use their environment role settings.
+5. Choose primary and accent colors and click **Save colors**. Visitors receive the saved theme. Bright colors are darkened for readable button labels.
+6. Set `DISCORD_GUILD_ID` and `DISCORD_BOT_TOKEN` and install the bot in that server. The homepage reads its Discord banner, including animated GIF banners, automatically. Missing banners or Discord errors show a themed placeholder. Updates may take about five minutes.
+
+Payments still require manual verification. Product duration describes the offer; automatic role expiry is not implemented. This version remains one configured server per deployment; shared multi-server tenancy is future work.
+
+For local admin UI testing only, run PowerShell with `$env:ADMIN_DISCORD_IDS='000000000000000000'` before `npm run dev`, then use Dev login. This override lasts for that terminal process. Never add this mock ID to production settings. Stop that process and use a fresh terminal afterwards.
+
+### Banner troubleshooting
+
+A server ID alone is not enough for the authenticated banner lookup. Set `DISCORD_BOT_TOKEN` to the token of a bot installed in the server identified by `DISCORD_GUILD_ID`. Restart `npm run dev` after editing `.env`, or redeploy after changing Vercel environment variables. The server must have an actual Discord server banner; an icon or invite background is a different image.
+
+Open Admin → Products & appearance → Discord connection to see whether the bot is missing, invalid, cannot access the server, or the server has no banner. The default is a bundled Verdanta animated GIF, with a still poster for reduced motion. Member counts are fetched from Discord approximately once a minute; unknown counts display a dash instead of sample numbers. Demo statistics, ratings, staff, testimonials, and event entries are no longer presented as real data.

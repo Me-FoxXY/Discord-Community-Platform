@@ -13,6 +13,7 @@ const accentBg: Record<StaffMember["accent"], string> = {
 };
 
 export function StaffSection() {
+  if (!staff.length) return null;
   return (
     <section className="py-20 sm:py-28">
       <Container>

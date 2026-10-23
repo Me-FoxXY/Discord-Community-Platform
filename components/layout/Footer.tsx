@@ -4,7 +4,7 @@ import { DiscordIcon, XIcon, YoutubeIcon, InstagramIcon } from "@/components/ico
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { site, navLinks } from "@/config/site";
-import { plans } from "@/config/plans";
+import { listProducts } from "@/lib/catalog";
 import type { SocialPlatform } from "@/config/site";
 import type { ComponentType, SVGProps } from "react";
 
@@ -15,7 +15,8 @@ const socialIcon: Record<SocialPlatform, ComponentType<SVGProps<SVGSVGElement>>>
   instagram: InstagramIcon,
 };
 
-export function Footer() {
+export async function Footer() {
+  const plans = await listProducts();
   const year = new Date().getFullYear();
   return (
     <footer className="relative mt-24 overflow-hidden border-t border-forest-100 bg-white/50">
@@ -25,7 +26,7 @@ export function Footer() {
           <div aria-hidden className="pointer-events-none absolute inset-0 opacity-20 [background:radial-gradient(60%_120%_at_50%_-10%,white,transparent)]" />
           <h2 className="relative text-3xl text-white sm:text-4xl">Ready to grow with us?</h2>
           <p className="relative mx-auto mt-3 max-w-xl text-mint-50/90">
-            Join thousands of members in the friendliest corner of Discord — then make it yours with premium perks.
+            Join our community in the friendliest corner of Discord — then make it yours with premium perks.
           </p>
           <div className="relative mt-7 flex flex-wrap justify-center gap-3">
             <Button href={site.discordInvite} variant="glass" size="lg">

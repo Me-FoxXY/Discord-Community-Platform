@@ -19,6 +19,7 @@ export type CreateOrderInput = {
   subtotal: number;
   discountAmount: number;
   couponCode: string | null;
+  roleId?: string | null;
   discordUserId: string;
   discordUsername: string;
 };
@@ -33,6 +34,8 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       subtotal: input.subtotal,
       discountAmount: input.discountAmount,
       couponCode: input.couponCode,
+      deliveryRoleId: input.roleId ?? null,
+      deliveryGuildId: process.env.DISCORD_GUILD_ID || null,
       currency: "INR",
       note,
       status: "awaiting_payment",

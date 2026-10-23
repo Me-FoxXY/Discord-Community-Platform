@@ -6,6 +6,7 @@ import { TopographyLines } from "@/components/decor/nature";
 import { achievements } from "@/config/content";
 
 export function AchievementsSection() {
+  if (!achievements.length) return null;
   return (
     <section className="py-16 sm:py-20">
       <Container>

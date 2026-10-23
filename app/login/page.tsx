@@ -18,7 +18,7 @@ export default async function LoginPage({
   searchParams: Promise<{ callbackUrl?: string }>;
 }) {
   const sp = await searchParams;
-  const callbackUrl = sp.callbackUrl ?? "/";
+  const callbackUrl = sp.callbackUrl?.startsWith("/") && !sp.callbackUrl.startsWith("//") && !sp.callbackUrl.includes("\\") ? sp.callbackUrl : "/";
   const session = await auth();
   if (session?.user) redirect(callbackUrl);
 
@@ -26,7 +26,7 @@ export default async function LoginPage({
     <main className="relative grid min-h-dvh place-items-center overflow-hidden py-24">
       <GradientBlobs />
       <Container className="max-w-md">
-        <div className="rounded-5xl border border-forest-100/70 bg-white/80 p-8 shadow-card backdrop-blur sm:p-10">
+        <div className="rounded-5xl border border-forest-100/70 bg-white/80 p-6 shadow-card backdrop-blur sm:p-8">
           <Link href="/" className="mb-6 inline-flex items-center gap-2">
             <span className="grid h-10 w-10 place-items-center rounded-2xl bg-forest-grad text-white shadow-soft">
               <Leaf className="h-5 w-5" />

@@ -65,3 +65,18 @@ model Coupon {
   expiresAt   DateTime?
   createdAt   DateTime @default(now())
 }
+
+model Product {
+  slug String @id
+  data Json
+  enabled Boolean @default(true)
+  roleId String?
+  updatedAt DateTime @updatedAt
+}
+
+model StoreSettings {
+  id String @id @default("default")
+  primaryColor String @default("#2f855a")
+  accentColor String @default("#14a5a0")
+  updatedAt DateTime @updatedAt
+}
