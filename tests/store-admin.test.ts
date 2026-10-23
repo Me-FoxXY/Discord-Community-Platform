@@ -36,3 +36,10 @@ it('persists only valid custom hex colors', async () => {
  expect((await theme(req({ primaryColor: '#ff0066', accentColor: '#123abc' }))).status).toBe(200);
  expect(mock.upsert).toHaveBeenCalled();
 });
+
+it('preserves FAQs when editing a product price', async () => {
+ const faq = [{ q: 'How do I claim my role?', a: 'Submit payment proof.' }];
+ mock.findUnique.mockResolvedValue({ data: { faq } });
+ expect((await PATCH(req({ ...input, price: 129 }))).status).toBe(200);
+ expect(mock.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ data: expect.objectContaining({ faq, price: 129 }) }) }));
+});

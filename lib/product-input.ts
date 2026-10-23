@@ -25,6 +25,6 @@ export function productPlan(input: z.infer<typeof productSchema>, previous?: Pla
     emoji: previous?.emoji ?? '✨', accent: previous?.accent ?? 'mint',
     eligibility: previous?.eligibility ?? ['You must be a member of this Discord server.'],
     deliveryTimeline: previous?.deliveryTimeline ?? 'Your role is delivered after an admin verifies your payment.',
-    faq: [],
+    faq: previous?.faq ?? [],
   };
 }

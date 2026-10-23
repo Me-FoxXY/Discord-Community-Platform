@@ -1,34 +1,43 @@
-from PIL import Image, ImageDraw, ImageFont
-import math
+"""Render licensed nature footage into the Verdanta banner assets.
+Usage: python scripts/create-brand-banner.py --input clip.mp4 --ffmpeg /path/to/ffmpeg
+Requires FFmpeg with libx264, libvpx-vp9, libwebp and drawtext support.
+The original footage is NOT included in the repository; see public/MEDIA-LICENSE.md.
+"""
+import argparse, subprocess, shutil
 from pathlib import Path
-W,H=640,480
-font_path='C:/Windows/Fonts/georgia.ttf'
-font=ImageFont.truetype(font_path,55)
-small=ImageFont.truetype('C:/Windows/Fonts/segoeui.ttf',15)
-frames=[]
-for frame in range(60):
- t=frame/60*2*math.pi
- im=Image.new('RGB',(W,H)); pix=im.load()
- for y in range(H):
-  for x in range(W):
-   glow=max(0,1-math.hypot((x-320)/480,(y-220)/350))
-   pix[x,y]=(int(7+glow*12),int(28+glow*42),int(26+glow*35))
- d=ImageDraw.Draw(im)
- for j in range(7):
-  pts=[(x,340+j*23+18*math.sin(x/105+t+j*.4)) for x in range(-5,W+6,5)]
-  d.line(pts,fill=(25+j*2,75+j*5,66+j*4),width=2)
- for j in range(18):
-  x=(j*137)%640; y=(j*83)%480
-  dx=7*math.sin(t+j); dy=8*math.cos(t+j*.8)
-  d.ellipse((x+dx,y+dy,x+dx+2,y+dy+2),fill=(87,151,126))
- # Animated circular leaf emblem, with typography in a quiet central area.
- cy=154+4*math.sin(t)
- d.ellipse((285,cy-35,355,cy+35),outline=(123,201,160),width=2)
- d.ellipse((305,cy-19,335,cy+12),fill=(126,209,165))
- d.line((307,cy+20,330,cy-12),fill=(17,57,43),width=3)
- d.text((320,219),'Verdanta',font=font,fill=(241,250,235),anchor='mm')
- d.text((320,270),'GROW TOGETHER. BELONG HERE.',font=small,fill=(161,209,183),anchor='mm')
- frames.append(im.quantize(colors=96))
-Path('public').mkdir(exist_ok=True)
-frames[0].save('public/verdanta-default.gif',save_all=True,append_images=frames[1:],duration=100,loop=0,optimize=True)
-frames[0].convert('RGB').save('public/verdanta-default.png')
+parser=argparse.ArgumentParser()
+parser.add_argument('--input', required=True)
+parser.add_argument('--ffmpeg', default='ffmpeg')
+parser.add_argument('--serif', default='C:/Windows/Fonts/georgia.ttf')
+parser.add_argument('--sans', default='C:/Windows/Fonts/segoeui.ttf')
+a=parser.parse_args()
+root=Path(__file__).resolve().parent.parent
+work=root/'.local'/'media'; work.mkdir(parents=True,exist_ok=True)
+shutil.copyfile(a.serif,work/'serif.ttf'); shutil.copyfile(a.sans,work/'sans.ttf')
+def run(*args):
+ subprocess.run([a.ffmpeg,'-hide_banner','-loglevel','warning','-y',*args],cwd=root,check=True)
+# Native 4:3 crop, full source frame rate, no synthesized frames or reversed motion.
+# Play seconds 1..11, dissolving the last second into 0..1. The boundary then
+# continues into second 1 without a cut, flash, freeze, or change of direction.
+graph=(
+ '[0:v]trim=start=0:end=11,setpts=PTS-STARTPTS,crop=1440:1080,setsar=1,fps=30,split=2[a][b];'
+ '[a]trim=start=1:end=11,setpts=PTS-STARTPTS,fps=30,settb=AVTB[body];'
+ '[b]trim=start=0:end=1,setpts=PTS-STARTPTS,fps=30,settb=AVTB[head];'
+ '[body][head]xfade=transition=fade:duration=1:offset=9,'
+ 'eq=brightness=-0.035:saturation=0.94,'
+ 'drawbox=x=0:y=0:w=iw:h=ih:color=black@0.12:t=fill,'
+ "drawtext=fontfile=.local/media/serif.ttf:text='Verdanta':fontsize=112:fontcolor=0xF8F7EC:"
+ 'x=(w-text_w)/2:y=h*0.43:shadowcolor=black@0.55:shadowx=0:shadowy=3,'
+ "drawtext=fontfile=.local/media/sans.ttf:text='G R O W   T O G E T H E R .   B E L O N G   H E R E .':fontsize=22:fontcolor=0xF8F7EC:"
+ 'x=(w-text_w)/2:y=h*0.58:shadowcolor=black@0.7:shadowx=0:shadowy=2,format=yuv420p[v]')
+run('-i',str(Path(a.input).resolve()),'-filter_complex',graph,'-map','[v]','-an','-t','10',
+ '-c:v','libx264','-preset','slow','-crf','27','-movflags','+faststart','public/verdanta-default.mp4')
+run('-i','public/verdanta-default.mp4','-an','-c:v','libvpx-vp9','-b:v','0','-crf','40','-cpu-used','4',
+ '-row-mt','1','-threads','4','public/verdanta-default.webm')
+# GIF retained for download/legacy fallback; primary playback uses the much smaller video.
+run('-i','public/verdanta-default.mp4','-filter_complex',
+ 'fps=15,scale=640:480:flags=lanczos,split[a][b];[a]palettegen=max_colors=256:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=3:diff_mode=rectangle',
+ '-loop','0','public/verdanta-default.gif')
+run('-i','public/verdanta-default.mp4','-frames:v','1','-update','1','public/verdanta-default.png')
+run('-i','public/verdanta-default.mp4','-frames:v','1','-c:v','libwebp','-quality','88','public/verdanta-default.webp')
+for file in (root/'public').glob('verdanta-default.*'): print(file.name,round(file.stat().st_size/1024),'KiB')

@@ -7,6 +7,7 @@ import { ArrowRight, Sparkles, Star } from "lucide-react";
 import { DiscordIcon } from "@/components/icons/brands";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
+import { NatureBanner } from "./NatureBanner";
 
 import { MemberStats, LiveMemberCount } from "@/components/community/LiveMemberCount";
 import { FloatingLeaves } from "@/components/decor/nature";
@@ -61,7 +62,7 @@ export function Hero() {
             <motion.div variants={fadeInUp} className="mt-12 max-w-lg"><MemberStats /></motion.div>
           </motion.div>
 
-          {/* Media — the provided GIF banner */}
+          {/* Discord artwork takes priority over the branded forest film. */}
           <HeroBanner reduce={!!reduce} />
         </div>
       </Container>
@@ -70,7 +71,7 @@ export function Hero() {
 }
 
 function HeroBanner({ reduce }: { reduce: boolean }) {
-  const { data } = useSWR<{url: string | null; staticUrl?: string | null}>("/api/discord/banner", async url => { const response = await fetch(url); if (!response.ok) throw new Error("Banner unavailable"); return response.json(); }, { refreshInterval: 60000, revalidateOnFocus: false, shouldRetryOnError: false });
+  const { data, isLoading } = useSWR<{url: string | null; staticUrl?: string | null}>("/api/discord/banner", async url => { const response = await fetch(url); if (!response.ok) throw new Error("Banner unavailable"); return response.json(); }, { refreshInterval: 60000, revalidateOnFocus: false, shouldRetryOnError: false });
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const source = (reduce ? data?.staticUrl : data?.url) ?? null;
   const fallback = !source || failedUrl === source;
@@ -87,10 +88,7 @@ function HeroBanner({ reduce }: { reduce: boolean }) {
 
       <div className="relative overflow-hidden rounded-5xl border border-white/60 bg-white/40 p-2.5 shadow-glow backdrop-blur">
         {fallback ? (
-          <div className="relative grid aspect-[4/3] w-full place-items-center overflow-hidden rounded-[2rem] bg-river">
-            <img src={reduce ? site.heroPoster : site.heroGif} alt={`${site.name} — ${site.tagline}`} className="absolute inset-0 h-full w-full object-cover" />
-
-          </div>
+          <NatureBanner ready={!isLoading} />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
           <img
