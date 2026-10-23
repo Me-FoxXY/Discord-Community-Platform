@@ -1,4 +1,5 @@
 "use client";
+import { Select } from "@/components/ui/Select";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -50,10 +51,29 @@ export function ServerManager({
   const [canRegister, setCanRegister] = useState(false),
     [guildId, setGuildId] = useState(""),
     [choices, setChoices] = useState<{ id: string; name: string }[]>([]);
+  const [discoveryError, setDiscoveryError] = useState("");
+  const [discovering, setDiscovering] = useState(false);
+  const [discovered, setDiscovered] = useState(false);
+  async function discover() {
+    setDiscovering(true);
+    setDiscoveryError("");
+    try {
+      setChoices(await request("/api/discord/manageable-guilds"));
+      setDiscovered(true);
+    } catch (error) {
+      setDiscoveryError(
+        error instanceof Error
+          ? error.message
+          : "Could not load Discord servers.",
+      );
+    } finally {
+      setDiscovering(false);
+    }
+  }
   const [error, setError] = useState(""),
     [message, setMessage] = useState(""),
     [busy, setBusy] = useState(false),
-    [loading, setLoading] = useState(true);
+    [loading, setLoading] = useState(status !== "unauthenticated");
   const [audit, setAudit] = useState<Audit[]>([]),
     [staff, setStaff] = useState<{ userId: string; role: string }[]>([]),
     [staffId, setStaffId] = useState(""),
@@ -87,6 +107,7 @@ export function ServerManager({
   }
   useEffect(() => {
     if (status === "authenticated") {
+      void discover();
       setLoading(true);
       load()
         .then(() => (initialServerId ? open(initialServerId) : undefined))
@@ -126,15 +147,15 @@ export function ServerManager({
       )}
       <section className="rounded-3xl border border-forest-200 bg-white/90 p-6">
         <label htmlFor="server-select" className="mb-2 block font-semibold">
-          Your servers
+          Your connected communities
         </label>
-        <select
+        <Select
           id="server-select"
           className={inputClass}
           value={selected?.id || ""}
           disabled={busy}
-          onChange={(e) => {
-            const id = e.target.value;
+          onChange={(value) => {
+            const id = value;
             if (id) router.push("/servers/" + id);
             else router.push("/servers");
           }}
@@ -142,88 +163,130 @@ export function ServerManager({
           <option value="">Select a server</option>
           {servers.map((s) => (
             <option key={s.id} value={s.id}>
-              {s.name} · {s.guildId || "setup pending"} · {s.status}
+              {choices.find((g) => g.id === s.guildId)?.name || s.name} ·{" "}
+              {s.status}
             </option>
           ))}
-        </select>
+        </Select>
         {!servers.length && (
           <p className="mt-3">
-            You have no assigned servers. Contact a website administrator for
-            access.
+            No communities are connected to your website account yet. Your
+            Discord servers appear below.
           </p>
         )}
       </section>
-      {canRegister && !selected && (
+      {!selected && (
         <section className="rounded-3xl border border-forest-200 bg-white/90 p-6">
-          <h2 className="text-xl font-semibold">Add a Discord server</h2>
+          <h2 className="text-xl font-semibold">
+            Servers you manage on Discord
+          </h2>
           <p className="my-3 text-ink-soft">
-            Install the platform bot first. You must also own the server or have
-            Manage Server permission.
+            Servers you own or have permission to manage appear here. Connecting
+            a server also requires website registration permission and the
+            platform bot.
           </p>
           <div className="flex flex-wrap gap-3">
             <Button
-              disabled={busy}
+              disabled={busy || discovering}
               variant="outline"
-              onClick={() =>
-                action(async () => {
-                  setChoices(await request("/api/discord/manageable-guilds"));
-                  setMessage("Select a Discord server below.");
-                })
-              }
+              onClick={() => discover()}
             >
-              Find my Discord servers
+              {discovering
+                ? "Finding your servers…"
+                : "Refresh Discord servers"}
             </Button>
-            <Link
-              className="rounded-full border px-5 py-3"
-              href="/api/servers/install"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Install bot in Discord ↗
-            </Link>
+            {canRegister && (
+              <Link
+                className="rounded-full border px-5 py-3"
+                href="/api/servers/install"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Install bot in Discord ↗
+              </Link>
+            )}
           </div>
+          {discoveryError && (
+            <div
+              role="alert"
+              className="mt-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-950"
+            >
+              <p>{discoveryError}</p>
+              <button
+                type="button"
+                className="mt-2 font-semibold underline"
+                onClick={() =>
+                  signIn(
+                    "discord",
+                    { callbackUrl: "/servers" },
+                    { prompt: "consent" },
+                  )
+                }
+              >
+                Reconnect Discord
+              </button>
+            </div>
+          )}
+          {!discovering && discovered && choices.length === 0 && (
+            <p className="mt-4 text-sm text-ink-soft">
+              No servers with ownership or Manage Server permission were found
+              for this Discord account. Try reconnecting with the account that
+              owns your servers.
+            </p>
+          )}
+          {!canRegister && (
+            <p className="mt-4 text-sm text-ink-soft">
+              You can browse your Discord servers here. Ask a website
+              administrator for permission to connect one.
+            </p>
+          )}
           {choices.length > 0 && (
-            <select
+            <Select
               aria-label="Discord servers"
               className={`${inputClass} mt-4`}
-              onChange={(e) => setGuildId(e.target.value)}
+              onChange={(value) => setGuildId(value)}
               value={guildId}
             >
               <option value="">Choose a server</option>
               {choices.map((g) => (
                 <option value={g.id} key={g.id}>
-                  {g.name} · {g.id}
+                  {g.name}
+                  {choices.filter((other) => other.name === g.name).length > 1
+                    ? ` · …${g.id.slice(-6)}`
+                    : ""}
                 </option>
               ))}
-            </select>
+            </Select>
           )}
-          <form
-            className="mt-4 flex flex-wrap gap-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void action(async () => {
-                const result = await request("/api/servers", "POST", {
-                  guildId,
+          {canRegister && (
+            <form
+              className="mt-4 flex flex-wrap gap-3"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void action(async () => {
+                  const result = await request("/api/servers", "POST", {
+                    guildId,
+                  });
+                  await load();
+                  await open(result.id);
+                  setMessage(
+                    "Server added. Configure payment details and products before selling.",
+                  );
                 });
-                await load();
-                await open(result.id);
-                setMessage(
-                  "Server added. Configure payment details and products before selling.",
-                );
-              });
-            }}
-          >
-            <input
-              aria-label="Discord server ID"
-              placeholder="Discord server ID"
-              value={guildId}
-              onChange={(e) => setGuildId(e.target.value)}
-              className={`${inputClass} max-w-md`}
-              required
-              pattern="[1-9][0-9]{16,19}"
-            />
-            <Button disabled={busy}>Validate and add</Button>
-          </form>
+              }}
+            >
+              <input
+                aria-label="Discord server ID"
+                placeholder="Discord server ID"
+                value={guildId}
+                onChange={(e) => setGuildId(e.target.value)}
+                className={`${inputClass} max-w-md`}
+                required
+                pattern="[1-9][0-9]{16,19}"
+              />
+              <Button disabled={busy}>Validate and add</Button>
+            </form>
+          )}
         </section>
       )}
       {platformAdmin && !selected && (
@@ -369,17 +432,18 @@ export function ServerManager({
                 )}
                 <label>
                   Status
-                  <select
+                  <Select
+                    aria-label="Status"
                     className={inputClass}
                     value={selected.status}
-                    onChange={(e) =>
-                      setSelected({ ...selected, status: e.target.value })
+                    onChange={(value) =>
+                      setSelected({ ...selected, status: value })
                     }
                   >
                     <option value="active">Active</option>
                     <option value="disabled">Disabled</option>
                     <option value="archived">Archived (retain records)</option>
-                  </select>
+                  </Select>
                 </label>
                 <div className="self-end">
                   <Button disabled={busy}>Save settings</Button>
@@ -421,17 +485,17 @@ export function ServerManager({
                   required
                   pattern="[1-9][0-9]{16,19}"
                 />
-                <select
+                <Select
                   aria-label="Staff role"
                   value={staffRole}
-                  onChange={(e) => setStaffRole(e.target.value)}
+                  onChange={(value) => setStaffRole(value)}
                   className="rounded-xl border p-3"
                 >
                   <option value="reviewer">Payment reviewer</option>
                   <option value="viewer">Viewer</option>
                   <option value="manager">Server manager</option>
                   <option value="remove">Remove access</option>
-                </select>
+                </Select>
                 <Button disabled={busy}>Update access</Button>
               </form>
               <h3 className="mt-8 text-xl">Recent administrative activity</h3>

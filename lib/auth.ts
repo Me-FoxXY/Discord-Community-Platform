@@ -15,6 +15,8 @@ const providers: NextAuthConfig["providers"] = [];
 if (hasDiscord) {
   providers.push(
     Discord({
+      // Discord includes this issuer in OAuth callbacks; keep issuer validation enabled.
+      issuer: "https://discord.com",
       clientId: process.env.AUTH_DISCORD_ID!,
       clientSecret: process.env.AUTH_DISCORD_SECRET!,
       authorization: { params: { scope: "identify guilds" } },

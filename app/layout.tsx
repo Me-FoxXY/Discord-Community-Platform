@@ -1,10 +1,8 @@
 import { notFound } from "next/navigation";
+import { auth } from "@/lib/auth";
 import { ServerError } from "@/lib/servers/errors";
 import { currentServer } from "@/lib/servers/context";
-import {
-  CommunityProvider,
-  CommunityIndicator,
-} from "@/components/servers/Community";
+import { CommunityProvider } from "@/components/servers/Community";
 import type { Metadata, Viewport } from "next";
 import { fraunces, jakarta } from "@/lib/fonts";
 import { Providers } from "./providers";
@@ -57,10 +55,13 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const server = await currentServer().catch((error) => {
-    if (error instanceof ServerError && error.status === 404) notFound();
-    throw error;
-  });
+  const [session, server] = await Promise.all([
+    auth(),
+    currentServer().catch((error) => {
+      if (error instanceof ServerError && error.status === 404) notFound();
+      throw error;
+    }),
+  ]);
   const settings = await prisma.storeSettings.findUnique({
     where: { serverId: server.id },
   });
@@ -71,7 +72,7 @@ export default async function RootLayout({
       className={`${fraunces.variable} ${jakarta.variable}`}
     >
       <body className="min-h-dvh antialiased">
-        <Providers>
+        <Providers session={session}>
           <CommunityProvider
             key={server.id}
             server={{
@@ -90,7 +91,6 @@ export default async function RootLayout({
             </a>
             <PageBackdrop />
             <Navbar />
-            <CommunityIndicator />
             <div className="flex min-h-dvh flex-col">
               <div id="main" className="flex-1">
                 {children}

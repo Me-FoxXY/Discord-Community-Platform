@@ -1,4 +1,5 @@
 "use client";
+import { Select } from "@/components/ui/Select";
 import { communityFetch } from "@/components/servers/Community";
 import { DiscordStatus } from "./DiscordStatus";
 import { useState } from "react";
@@ -108,11 +109,12 @@ export function StoreManager({
       )}
       <label className="block text-sm">
         Choose a product
-        <select
+        <Select
+          aria-label="Choose a product"
           value={selected}
           disabled={busy}
-          onChange={(e) => {
-            setSelected(e.target.value);
+          onChange={(value) => {
+            setSelected(value);
             setMessage("");
           }}
           className={field}
@@ -124,7 +126,7 @@ export function StoreManager({
               {p.enabled ? "" : " (hidden)"}
             </option>
           ))}
-        </select>
+        </Select>
       </label>
       <form
         key={selected + (product?.price ?? "")}

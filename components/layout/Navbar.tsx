@@ -98,6 +98,14 @@ export function Navbar() {
 
           {/* Right side */}
           <div className="flex items-center gap-2">
+            {user && (
+              <a
+                href="/servers"
+                className="hidden rounded-full px-3 py-2 text-sm font-semibold text-forest-800 hover:bg-forest-50 md:inline-flex"
+              >
+                My servers
+              </a>
+            )}
             <a
               href={site.discordInvite}
               target="_blank"
@@ -244,6 +252,12 @@ export function Navbar() {
                   />
                 ) : user ? (
                   <>
+                    <a
+                      href="/servers"
+                      className="rounded-2xl px-4 py-3 font-semibold text-forest-800 hover:bg-white/60"
+                    >
+                      My servers
+                    </a>
                     <div className="flex items-center gap-2 px-2">
                       <Avatar image={user.image} initials={initials} />
                       <span className="text-sm font-medium text-forest-900">

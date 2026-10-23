@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useContext } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+
 import type { ComponentProps, ReactNode } from "react";
 import useSWR from "swr";
 import { site } from "@/config/site";
@@ -81,21 +81,5 @@ export function useCommunitySWR<T>(
       : key.replace("/api/", `/api/s/${server.id}/`),
     fetcher,
     options,
-  );
-}
-export function CommunityIndicator() {
-  const server = useCommunity();
-  const path = usePathname();
-  if (path.startsWith("/servers")) return null;
-  return (
-    <div className="relative z-10 mx-auto mt-24 flex max-w-6xl flex-wrap items-center justify-between gap-2 rounded-2xl border border-forest-200 bg-white/90 p-3 text-sm">
-      <span>
-        <strong>{server.name}</strong> · {server.guildId || "Setup pending"}{" "}
-        {server.status !== "active" && ` · ${server.status}`}
-      </span>
-      <a href="/servers" className="underline">
-        Switch / manage servers
-      </a>
-    </div>
   );
 }

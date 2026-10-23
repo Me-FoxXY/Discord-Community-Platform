@@ -17,6 +17,11 @@ After import, `DISCORD_GUILD_ID`, `DISCORD_ROLE_*`, and the original `NEXT_PUBLI
 
 ## Using the interface
 
+- **My servers** appears in navigation after sign-in. Guests see a sign-in prompt on `/servers`; storefronts remain public. The old global server-ID strip has been removed.
+- Discord discovery runs automatically for any signed-in user and shows the names of servers they own or can manage. This does not grant website registration or management access. Those backend checks remain mandatory.
+- If discovery requests reconnection, use **Reconnect Discord**. The website operator must configure `CONFIG_ENCRYPTION_KEY` before signing in so the OAuth grant can be saved securely. Old sessions created before that setup need reauthorization.
+- Server, staff, status, product, and coupon dropdowns use custom keyboard-accessible controls (arrow keys, Enter, Escape, and type-to-search).
+
 - Add a server: choose a Discord server or enter its Guild ID, install the shared bot, and select **Validate and add**. Discord installation itself never grants website access.
 - Configure the community name, invite, manual UPI recipient, and payee. Add products with explicit role mappings and set colors under **Orders & products**.
 - Add staff by Discord user ID: manager, payment reviewer, or viewer. Managers must retain Discord management privileges; all delegated staff must retain guild membership. Platform administrators have an explicit global override.

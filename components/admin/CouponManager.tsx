@@ -1,4 +1,5 @@
 "use client";
+import { Select } from "@/components/ui/Select";
 import { communityFetch } from "@/components/servers/Community";
 
 import { useState } from "react";
@@ -116,10 +117,10 @@ export function CouponManager({
         </label>
         <label>
           Discount type
-          <select name="kind" className={inputClass}>
+          <Select aria-label="Discount type" name="kind" className={inputClass}>
             <option value="percent">Percentage (%)</option>
             <option value="fixed">Fixed amount (₹)</option>
-          </select>
+          </Select>
         </label>
         <label>
           Discount value
@@ -148,14 +149,14 @@ export function CouponManager({
         </label>
         <label>
           Applies to
-          <select name="planSlug" className={inputClass}>
+          <Select aria-label="Applies to" name="planSlug" className={inputClass}>
             <option value="">All plans</option>
             {plans.map((plan) => (
               <option key={plan.slug} value={plan.slug}>
                 {plan.name}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <label>
           Expires at (optional, your local time)

@@ -9,8 +9,11 @@ import {
 import { apiHandler, ServerError } from "@/lib/servers/errors";
 export const GET = apiHandler(async () => {
   const actor = await identity();
-  if (!actor.platformAdmin && !actor.registrar)
-    throw new ServerError("You are not allowed to register servers.", 403);
+  if (!/^[a-fA-F0-9]{64}$/.test(process.env.CONFIG_ENCRYPTION_KEY || ""))
+    throw new ServerError(
+      "Server discovery is not configured. Ask the website operator to set CONFIG_ENCRYPTION_KEY, then reconnect Discord.",
+      503,
+    );
   const grant = await prisma.discordAuthorization.findUnique({
     where: { userId: actor.userId },
   });
@@ -19,9 +22,18 @@ export const GET = apiHandler(async () => {
       "Sign out and reconnect Discord to refresh server access.",
       401,
     );
+  let credential: string;
+  try {
+    credential = decryptCredential(grant.credentials, actor.userId);
+  } catch {
+    throw new ServerError(
+      "Reconnect Discord to restore server discovery.",
+      401,
+    );
+  }
   const guilds = await discordRequest<DiscordGuild[]>(
-    "/users/@me/guilds",
-    decryptCredential(grant.credentials, actor.userId),
+    "/users/@me/guilds?limit=200",
+    credential,
   );
   return Response.json(
     guilds
