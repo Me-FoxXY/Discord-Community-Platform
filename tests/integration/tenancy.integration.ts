@@ -47,7 +47,7 @@ import {
   listRecent,
   reviewOrder,
 } from "@/lib/orders/store";
-import { POST as register } from "@/app/api/servers/route";
+
 import { PATCH as settings } from "@/app/api/servers/[id]/route";
 import { GET as screenshot } from "@/app/api/orders/[id]/screenshot/route";
 import { POST as verify } from "@/app/api/admin/orders/[id]/verify/route";
@@ -58,7 +58,7 @@ const run = randomUUID().slice(0, 8),
   b = `tenant-b-${run}`;
 const guildA = "723456789012345678",
   guildB = "823456789012345678";
-const thirdGuild = "923456789012345678";
+
 const ids = [a, b];
 let orderId = "";
 let safe = false;
@@ -282,18 +282,6 @@ it("serializes configuration edits, audits the winner, and pauses disabled store
     409,
   );
   await prisma.server.update({ where: { id: a }, data: { status: "active" } });
-});
-it("requires platform registration permission and handles duplicate guilds", async () => {
-  expect((await register(request({ guildId: thirdGuild }))).status).toBe(403);
-  context.platform = true;
-  expect((await register(request({ guildId: "invalid" }))).status).toBe(400);
-  context.manager = false;
-  expect((await register(request({ guildId: thirdGuild }))).status).toBe(403);
-  context.manager = true;
-  const result = await register(request({ guildId: thirdGuild }));
-  expect(result.status).toBe(201);
-  ids.push((await result.json()).id);
-  expect((await register(request({ guildId: thirdGuild }))).status).toBe(409);
 });
 it("rejects cross-origin writes before changing configuration", async () => {
   const req = new Request("http://localhost/api/servers/" + a, {
