@@ -154,5 +154,5 @@ model AuditEvent {
 
 model DiscordRateGate {
   id String @id
-  nextAt DateTime
+  nextAt DateTime @db.Timestamptz(3)
 }

@@ -42,6 +42,8 @@ Published roles must belong to the selected guild, be below the bot, and must no
 
 PostgreSQL coordinates conservative per-credential/per-route request spacing and Discord 429 cooldowns across application instances. No process-local background loop or Gateway client is required. Private proof uploads are limited to 3 MB to leave room below Vercel's request limit; private object storage remains a future improvement.
 
+Rate-limit reservations use `TIMESTAMPTZ` and compute wait durations on the database clock. Apply migration `202610260001_rate_gate_timezone` before deploying this fix. It corrects the earlier timezone-less column, which could turn a 100 ms reservation into a multi-hour wait on non-UTC databases. The migration interprets old reservations in the migration connection's database timezone; use the same database timezone as the existing application connections.
+
 ## Verification and recovery
 
 Run `npm test`, `npm run typecheck`, `npm run test:integration`, and `npm run build`. Integration tests use only the isolated local test database and simulate Discord; they cannot prove real OAuth installation or live role delivery.
