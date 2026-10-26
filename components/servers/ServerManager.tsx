@@ -1,10 +1,14 @@
 "use client";
-import { Select } from "@/components/ui/Select";
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { signIn, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
+import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
+import {
+  ServerHub,
+  ServerAvatar,
+  ServerBadge,
+  serverRequest as request,
+} from "./ServerHub";
 type Server = {
   id: string;
   name: string;
@@ -24,56 +28,27 @@ type Audit = {
   actorId: string;
 };
 const inputClass =
-  "w-full rounded-xl border border-forest-200 bg-white p-3 text-forest-950";
-async function request(url: string, method = "GET", body?: unknown) {
-  const res = await fetch(url, {
-    method,
-    headers: body ? { "Content-Type": "application/json" } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const data = await res.json();
-  if (!res.ok)
-    throw new Error(data.error || "Unable to complete this request.");
-  return data;
-}
+  "w-full rounded-2xl border border-forest-200 bg-white px-4 py-3 text-forest-950 focus:outline-2 focus:outline-forest-400";
 export function ServerManager({
   initialServerId,
 }: {
   initialServerId?: string;
 }) {
-  const router = useRouter();
+  return initialServerId ? (
+    <ServerSettings key={initialServerId} initialServerId={initialServerId} />
+  ) : (
+    <ServerHub />
+  );
+}
+function ServerSettings({ initialServerId }: { initialServerId: string }) {
   const { status } = useSession();
   const [servers, setServers] = useState<Server[]>([]),
     [selected, setSelected] = useState<Server | null>(null),
     [role, setRole] = useState("viewer");
-  const [platformAdmin, setPlatformAdmin] = useState(false),
-    [registrarId, setRegistrarId] = useState("");
-  const [canRegister, setCanRegister] = useState(false),
-    [guildId, setGuildId] = useState(""),
-    [choices, setChoices] = useState<{ id: string; name: string }[]>([]);
-  const [discoveryError, setDiscoveryError] = useState("");
-  const [discovering, setDiscovering] = useState(false);
-  const [discovered, setDiscovered] = useState(false);
-  async function discover() {
-    setDiscovering(true);
-    setDiscoveryError("");
-    try {
-      setChoices(await request("/api/discord/manageable-guilds"));
-      setDiscovered(true);
-    } catch (error) {
-      setDiscoveryError(
-        error instanceof Error
-          ? error.message
-          : "Could not load Discord servers.",
-      );
-    } finally {
-      setDiscovering(false);
-    }
-  }
   const [error, setError] = useState(""),
     [message, setMessage] = useState(""),
     [busy, setBusy] = useState(false),
-    [loading, setLoading] = useState(status !== "unauthenticated");
+    [loading, setLoading] = useState(true);
   const [audit, setAudit] = useState<Audit[]>([]),
     [staff, setStaff] = useState<{ userId: string; role: string }[]>([]),
     [staffId, setStaffId] = useState(""),
@@ -81,16 +56,16 @@ export function ServerManager({
   async function load() {
     const data = await request("/api/servers");
     setServers(data.servers);
-    setCanRegister(data.canRegister);
-    setPlatformAdmin(data.platformAdmin);
   }
   async function open(id: string) {
-    const data = await request(`/api/servers/${id}`);
+    const data = await request("/api/servers/" + id);
     setSelected(data.server);
     setRole(data.role);
     setAudit(data.audit);
     setStaff(
-      data.role === "manager" ? await request(`/api/servers/${id}/access`) : [],
+      data.role === "manager"
+        ? await request("/api/servers/" + id + "/access")
+        : [],
     );
   }
   async function action(fn: () => Promise<void>) {
@@ -107,246 +82,74 @@ export function ServerManager({
   }
   useEffect(() => {
     if (status === "authenticated") {
-      void discover();
       setLoading(true);
-      load()
-        .then(() => (initialServerId ? open(initialServerId) : undefined))
+      Promise.all([load(), open(initialServerId)])
         .catch((e) => setError(e.message))
         .finally(() => setLoading(false));
     } else if (status === "unauthenticated") setLoading(false);
   }, [status, initialServerId]);
-  if (status === "loading" || loading)
+  if (status === "unauthenticated") return <ServerHub />;
+  if (loading || status === "loading")
     return (
-      <p role="status" className="p-8">
-        Loading your servers…
+      <p
+        role="status"
+        className="animate-pulse rounded-3xl bg-white/80 p-8 text-ink-soft"
+      >
+        Opening your community workspace…
       </p>
-    );
-  if (status === "unauthenticated")
-    return (
-      <div className="rounded-3xl bg-white/90 p-8">
-        <h2 className="text-2xl">Sign in to manage your communities</h2>
-        <Button
-          onClick={() => signIn("discord", { callbackUrl: "/servers" })}
-          className="mt-5"
-        >
-          Continue with Discord
-        </Button>
-      </div>
     );
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <a
+          href="/servers"
+          className="text-sm font-semibold text-forest-700 hover:underline"
+        >
+          ← All communities
+        </a>
+        <div className="w-full sm:w-72">
+          <Select
+            aria-label="Switch community"
+            value={selected?.id || ""}
+            onChange={(id) => {
+              window.location.href = "/servers/" + id;
+            }}
+            className={inputClass}
+          >
+            <option value="">Choose a community</option>
+            {servers.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </Select>
+        </div>
+      </div>
       {error && (
-        <p role="alert" className="rounded-xl bg-red-50 p-4 text-red-800">
+        <p
+          role="alert"
+          className="rounded-2xl bg-red-50 p-4 text-sm text-red-800"
+        >
           {error}
         </p>
       )}
       {message && (
-        <p role="status" className="rounded-xl bg-green-50 p-4 text-green-900">
+        <p
+          role="status"
+          className="rounded-2xl bg-emerald-50 p-4 text-sm text-emerald-900"
+        >
           {message}
         </p>
       )}
-      <section className="rounded-3xl border border-forest-200 bg-white/90 p-6">
-        <label htmlFor="server-select" className="mb-2 block font-semibold">
-          Your connected communities
-        </label>
-        <Select
-          id="server-select"
-          className={inputClass}
-          value={selected?.id || ""}
-          disabled={busy}
-          onChange={(value) => {
-            const id = value;
-            if (id) router.push("/servers/" + id);
-            else router.push("/servers");
-          }}
-        >
-          <option value="">Select a server</option>
-          {servers.map((s) => (
-            <option key={s.id} value={s.id}>
-              {choices.find((g) => g.id === s.guildId)?.name || s.name} ·{" "}
-              {s.status}
-            </option>
-          ))}
-        </Select>
-        {!servers.length && (
-          <p className="mt-3">
-            No communities are connected to your website account yet. Your
-            Discord servers appear below.
-          </p>
-        )}
-      </section>
-      {!selected && (
-        <section className="rounded-3xl border border-forest-200 bg-white/90 p-6">
-          <h2 className="text-xl font-semibold">
-            Servers you manage on Discord
-          </h2>
-          <p className="my-3 text-ink-soft">
-            Servers you own or have permission to manage appear here. Connecting
-            a server also requires website registration permission and the
-            platform bot.
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <Button
-              disabled={busy || discovering}
-              variant="outline"
-              onClick={() => discover()}
-            >
-              {discovering
-                ? "Finding your servers…"
-                : "Refresh Discord servers"}
-            </Button>
-            {canRegister && (
-              <Link
-                className="rounded-full border px-5 py-3"
-                href="/api/servers/install"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Install bot in Discord ↗
-              </Link>
-            )}
-          </div>
-          {discoveryError && (
-            <div
-              role="alert"
-              className="mt-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-950"
-            >
-              <p>{discoveryError}</p>
-              <button
-                type="button"
-                className="mt-2 font-semibold underline"
-                onClick={() =>
-                  signIn(
-                    "discord",
-                    { callbackUrl: "/servers" },
-                    { prompt: "consent" },
-                  )
-                }
-              >
-                Reconnect Discord
-              </button>
-            </div>
-          )}
-          {!discovering && discovered && choices.length === 0 && (
-            <p className="mt-4 text-sm text-ink-soft">
-              No servers with ownership or Manage Server permission were found
-              for this Discord account. Try reconnecting with the account that
-              owns your servers.
-            </p>
-          )}
-          {!canRegister && (
-            <p className="mt-4 text-sm text-ink-soft">
-              You can browse your Discord servers here. Ask a website
-              administrator for permission to connect one.
-            </p>
-          )}
-          {choices.length > 0 && (
-            <Select
-              aria-label="Discord servers"
-              className={`${inputClass} mt-4`}
-              onChange={(value) => setGuildId(value)}
-              value={guildId}
-            >
-              <option value="">Choose a server</option>
-              {choices.map((g) => (
-                <option value={g.id} key={g.id}>
-                  {g.name}
-                  {choices.filter((other) => other.name === g.name).length > 1
-                    ? ` · …${g.id.slice(-6)}`
-                    : ""}
-                </option>
-              ))}
-            </Select>
-          )}
-          {canRegister && (
-            <form
-              className="mt-4 flex flex-wrap gap-3"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void action(async () => {
-                  const result = await request("/api/servers", "POST", {
-                    guildId,
-                  });
-                  await load();
-                  await open(result.id);
-                  setMessage(
-                    "Server added. Configure payment details and products before selling.",
-                  );
-                });
-              }}
-            >
-              <input
-                aria-label="Discord server ID"
-                placeholder="Discord server ID"
-                value={guildId}
-                onChange={(e) => setGuildId(e.target.value)}
-                className={`${inputClass} max-w-md`}
-                required
-                pattern="[1-9][0-9]{16,19}"
-              />
-              <Button disabled={busy}>Validate and add</Button>
-            </form>
-          )}
-        </section>
-      )}
-      {platformAdmin && !selected && (
-        <section className="rounded-3xl border border-forest-200 bg-white/90 p-6">
-          <h2 className="text-xl">Who can register servers?</h2>
-          <p className="my-3 text-ink-soft">
-            Registration permission does not grant access to other communities.
-            Discord management permissions are still required.
-          </p>
-          <input
-            aria-label="Registration user ID"
-            className={inputClass}
-            placeholder="Discord user ID"
-            value={registrarId}
-            onChange={(e) => setRegistrarId(e.target.value)}
-          />
-          <div className="mt-3 flex gap-3">
-            <Button
-              disabled={busy}
-              onClick={() =>
-                action(async () => {
-                  await request("/api/servers/platform-access", "PUT", {
-                    userId: registrarId,
-                    role: "registrar",
-                  });
-                  setMessage("Registration permission granted.");
-                })
-              }
-            >
-              Allow registration
-            </Button>
-            <Button
-              disabled={busy}
-              variant="outline"
-              onClick={() =>
-                action(async () => {
-                  if (
-                    !window.confirm(
-                      "Remove this user’s permission to register new servers?",
-                    )
-                  )
-                    return;
-                  await request("/api/servers/platform-access", "PUT", {
-                    userId: registrarId,
-                    role: "remove",
-                  });
-                  setMessage("Registration permission removed.");
-                })
-              }
-            >
-              Remove permission
-            </Button>
-          </div>
-        </section>
-      )}
       {selected && (
-        <section className="rounded-3xl border border-forest-200 bg-white/90 p-6">
+        <section className="rounded-4xl border border-forest-100 bg-white/90 p-6 shadow-soft sm:p-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-2xl">{selected.name}</h2>
+              <div className="mb-3 flex items-center gap-3">
+                <ServerAvatar {...selected} />
+                <ServerBadge status={selected.status} />
+              </div>
+              <h2 className="font-display text-3xl">{selected.name}</h2>
               <p className="text-sm text-ink-soft">
                 Guild {selected.guildId || "not imported"} · {role} ·{" "}
                 {selected.status}
@@ -384,7 +187,7 @@ export function ServerManager({
           {role === "manager" && (
             <>
               <form
-                className="grid gap-4 sm:grid-cols-2"
+                className="grid gap-5 rounded-3xl border border-forest-100 bg-forest-50/40 p-5 sm:grid-cols-2"
                 onSubmit={(e) => {
                   e.preventDefault();
                   void action(async () => {
@@ -449,7 +252,12 @@ export function ServerManager({
                   <Button disabled={busy}>Save settings</Button>
                 </div>
               </form>
-              <h3 className="mt-8 text-xl">Server staff</h3>
+              <h3 className="mt-10 font-display text-2xl">
+                People & permissions
+              </h3>
+              <p className="mt-2 text-sm text-ink-soft">
+                Give your team the access they need within this community.
+              </p>
               <ul className="my-3 space-y-2">
                 {staff.map((s) => (
                   <li key={s.userId}>
@@ -498,7 +306,7 @@ export function ServerManager({
                 </Select>
                 <Button disabled={busy}>Update access</Button>
               </form>
-              <h3 className="mt-8 text-xl">Recent administrative activity</h3>
+              <h3 className="mt-10 font-display text-2xl">Activity trail</h3>
               <ul className="mt-3 space-y-2 text-sm">
                 {audit.map((a) => (
                   <li key={a.id}>

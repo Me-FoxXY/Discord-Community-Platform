@@ -1,85 +1,45 @@
-# Discord Community Platform — simple build plan
+# Roadmap
 
-## Decisions
+This repository evolves Discord-Package into a reusable Discord community storefront. Payments remain manually verified. Vercel is the hosting target; adding the live project to the portfolio is the final milestone.
 
-- This is a separate repository based on Discord-Package.
-- Keep UPI payments, UTR submission, screenshots, and manual admin approval.
-- Only an authorized admin can approve a payment. No payment gateway or automatic payment verification is planned.
-- Automatic perk delivery may happen after manual approval.
-- Host the application on Vercel.
-- Build and verify the product first. Add the deployed URL and repository to the portfolio last.
-- Current code is still single-server. Step 1 implementation is in progress; later steps are planned.
+## 1. Purchase workflow — implemented, live validation required
 
-## 1. Finish the current purchase flow
+- UPI payment, UTR and private screenshot submission.
+- Staff approval/rejection with separate Discord delivery status.
+- Coupons, saved order prices, concurrency protection and delivery retries.
+- Before launch: verify real payment review and role assignment in a test guild.
 
-- Let an admin approve or reject a submitted payment.
-- Prevent repeated approvals or conflicting review decisions.
-- After approval, grant the purchased Discord role.
-- Show payment approval and perk delivery separately.
-- Let an admin retry delivery if Discord is unavailable.
-- Let admins create discount coupons and let members apply one at checkout.
-- Show the original price, discount, and final UPI payment amount to members and reviewers.
+## 2. Membership lifecycle — planned
 
-Done when: a manually approved purchase delivers its role, and retrying does not duplicate benefits.
+- Track activation and expiry; show remaining time.
+- Define renewal and overlapping-purchase rules.
+- Remove expired benefits safely with repeatable background jobs.
+- Product duration currently describes the offer; it does not schedule expiry.
 
-Implementation added: conditional payment reviews, separate role delivery status,
-Discord role assignment, recoverable delivery leases, admin retries, and buyer status messages.
-Live validation needs a PostgreSQL database and real Discord bot/member/role configuration.
-Update: an isolated local PostgreSQL database is configured and all three migrations
-have been applied. Database-backed purchase and concurrency tests pass; Discord calls
-and authentication are simulated in those tests. Real Discord delivery remains to be verified.
-Only the plan role is automated in this milestone; other benefits still need staff setup.
+## 3. Multiple communities — implemented, live validation required
 
-## 2. Track memberships
+- Discord managers request onboarding; website administrators approve or reject.
+- Separate storefronts, products, payment settings, staff and purchase history.
+- Backend permission checks, encrypted discovery grants and audit records.
+- Before launch: exercise two real guilds, revoked access, bot removal and recovery.
 
-- Save when each benefit starts and ends.
-- Show the member their active plan and remaining time.
-- Remove expired benefits safely.
-- Let members renew through the same manual payment process.
-- Define what happens when a member renews before expiry.
+## 4. Management experience — implemented foundations
 
-Done when: a member can buy, view, renew, and expire a membership correctly.
+- Editable catalogs, role mappings, colors, coupons and community settings.
+- Named community selector, request history, review queue and custom dropdowns.
+- Follow-ups: paginate request history/review queues, improve operational reporting, and add focused usability improvements from real testing.
 
-## 3. Support multiple servers
+## 5. Deployment and operations — planned
 
-- Let an authorized owner connect a Discord server.
-- Give each server its own storefront, plans, payment details, and staff.
-- Keep orders and payment screenshots private to the buyer and that server's authorized staff.
-- Check bot permissions before a server starts selling.
+- Hosted PostgreSQL with pooling, verified backups and controlled migrations.
+- Private object storage for evidence; authenticated scheduled delivery/expiry jobs.
+- Operational alerts and retry/recovery checks under Vercel execution limits.
+- Revalidate live OAuth, permissions and the purchase lifecycle before public sales.
 
-Done when: two servers operate independently, and neither server's admins can access the other's private data.
+## 6. Portfolio presentation — last
 
-## 4. Add customization and useful admin tools
+- Publish a verified Vercel URL alongside this GitHub repository.
+- Add current screenshots or a short demo with no private customer data.
+- Explain the problem, design choices, tradeoffs and test evidence honestly.
 
-- Let owners edit branding, plans, prices, durations, and role rewards.
-- Add order search, review history, rejection reasons, and delivery retry controls.
-- Keep a record of important staff actions.
-- Support only benefits that the application can actually deliver.
-
-Done when: an owner can configure and operate a community without changing code.
-
-## 5. Prepare and deploy on Vercel
-
-- Use hosted PostgreSQL for persistent data.
-- Use private object storage for payment screenshots.
-- Use versioned database migrations separately from application builds.
-- Store credentials in environment settings.
-- Keep development login disabled in production.
-- Use short, authenticated scheduled requests to process saved delivery jobs and expiries.
-- Save job progress in the database; do not rely on a continuously running process inside Vercel.
-- Make repeated job runs safe and prevent two runs from claiming the same work.
-- Check the chosen Vercel plan's current scheduling and execution limits before setting the schedule.
-- Test manual checkout, access controls, expiry, and delivery recovery before launch.
-
-Done when: the hosted application survives retries and restarts, protects each server's data, and completes the purchase lifecycle.
-
-## 6. Add to the portfolio — last
-
-- Add the working Vercel URL and GitHub repository.
-- Briefly explain the problem, features, and technical decisions.
-- Add screenshots or a short demo only after the product is ready.
-
-## Repository status
-
-The local repository has been created. GitHub publication and Vercel deployment have not happened yet.
-The original GitHub Pages workflow is intentionally excluded from this new repository because the target is a server-backed Vercel application.
+GitHub publication is established. A verified live deployment is not yet documented. Use [README.md](README.md) for setup and [MULTI_SERVER.md](MULTI_SERVER.md) for upgrades and operations.

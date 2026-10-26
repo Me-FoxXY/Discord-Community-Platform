@@ -11,18 +11,18 @@ The storefront now isolates products, coupons, settings, orders, payment proofs,
 5. Before removing the original community environment settings, run `node scripts/import-server.mjs`. It copies its guild, invite, payment recipient, and product-role configuration into PostgreSQL and imports the trusted bootstrap administrator IDs. Conflicting historical guild targets abort the import. Existing non-null role snapshots are preserved. Missing role snapshots are filled only from their corresponding existing product mapping. Review those mappings before import.
 6. Build and deploy the application. New-server registration must remain restricted to trusted operators until live tests have passed.
 7. Sign in again with Discord to grant `identify guilds`. Existing identity-only sessions still identify users, but server discovery requires a new authorization. OAuth grants are encrypted server-side and never included in sessions. On expiry, revocation, or encryption-key rotation, reconnect Discord; refresh tokens are deliberately not stored.
-8. Open `/servers`. Platform administrators can allow a specific Discord user to register servers. Registrars still need Discord ownership, Administrator, or Manage Server privileges in each server they register.
+8. Open `/servers`. Discord owners and users with Administrator or Manage Server permission can request a community. A website administrator must approve it before a storefront and manager access are created.
 
 After import, `DISCORD_GUILD_ID`, `DISCORD_ROLE_*`, and the original `NEXT_PUBLIC_*` community values are legacy import inputs. Runtime server configuration comes from PostgreSQL. Keep `ADMIN_DISCORD_IDS` only as a tightly controlled bootstrap / recovery administrator allowlist; IDs in it retain global access even if a database role is removed. Removing a database-imported administrator also requires an operator to remove that row. Ordinary server managers cannot promote themselves to platform administrator.
 
 ## Using the interface
 
 - **My servers** appears in navigation after sign-in. Guests see a sign-in prompt on `/servers`; storefronts remain public. The old global server-ID strip has been removed.
-- Discord discovery runs automatically for any signed-in user and shows the names of servers they own or can manage. This does not grant website registration or management access. Those backend checks remain mandatory.
+- Discord discovery runs automatically for any signed-in user and shows the names of servers they own or can manage. Discovery does not grant website management access. Requests remain pending until a website administrator approves them.
 - If discovery requests reconnection, use **Reconnect Discord**. The website operator must configure `CONFIG_ENCRYPTION_KEY` before signing in so the OAuth grant can be saved securely. Old sessions created before that setup need reauthorization.
 - Server, staff, status, product, and coupon dropdowns use custom keyboard-accessible controls (arrow keys, Enter, Escape, and type-to-search).
 
-- Add a server: choose a Discord server or enter its Guild ID, install the shared bot, and select **Validate and add**. Discord installation itself never grants website access.
+- Request a server: select **Request a community**, choose a server discovered through Discord, add an optional message, and submit. Follow its status under **Your requests**. Website administrators use **Review queue** to approve or reject; rejection requires a reason and permits a new request. The shared bot must already be installed with the required permissions before approval. The existing bot-install endpoint remains restricted to website administrators and previously assigned registrars. Discord installation itself never grants website access.
 - Configure the community name, invite, manual UPI recipient, and payee. Add products with explicit role mappings and set colors under **Orders & products**.
 - Add staff by Discord user ID: manager, payment reviewer, or viewer. Managers must retain Discord management privileges; all delegated staff must retain guild membership. Platform administrators have an explicit global override.
 - Public storefronts use `/s/{internalId}`. The Guild ID remains unique and immutable. Duplicate names are allowed; the interface displays the Guild ID.
@@ -32,7 +32,9 @@ After import, `DISCORD_GUILD_ID`, `DISCORD_ROLE_*`, and the original `NEXT_PUBLI
 
 ## Security boundaries
 
-All restricted handlers use `requireAccess`; middleware only supplies URL-derived context and overwrites spoofed tenant headers. Never use the selector, a session's cached role, or a caller-provided `serverId` payload as authorization. Queries use the current server ID. Global UTR/screenshot duplicate detection intentionally crosses tenant boundaries without returning another tenant's data.
+Server-scoped handlers use `requireAccess`; request submission verifies live Discord management privileges, and request review requires website-administrator identity. Request lists expose only the current user's requests unless they are a website administrator. Requests cannot directly create a storefront. Approval rechecks bot access and requester permissions, then atomically creates the server, settings, requester manager access, decision, and audit. Duplicate pending requests are prevented by a database unique index; competing reviews return HTTP 409. Rejection and failed validation never grant access. Existing communities remain connected without reapproval.
+
+For server-scoped operations, middleware only supplies URL-derived context and overwrites spoofed tenant headers. Never use the selector, a session's cached role, or a caller-provided `serverId` payload as authorization. Queries use the current server ID. Global UTR/screenshot duplicate detection intentionally crosses tenant boundaries without returning another tenant's data.
 
 Configuration/staff updates and successful audits commit together. Version checks reject conflicting server updates with HTTP 409. Product, theme, coupon, and payment decisions are audited. Denied assigned-scope access is recorded without request bodies or secrets. Upstream outages can prevent an audit write; errors do not imply that Discord side effects rolled back. Role delivery uses persisted state, leases, idempotent PUTs, and explicit retries.
 

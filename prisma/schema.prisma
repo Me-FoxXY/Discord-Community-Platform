@@ -143,6 +143,7 @@ model DiscordAuthorization {
 
 model AuditEvent {
   id String @id @default(cuid())
+  requestId String?
   serverId String?
   server Server? @relation(fields: [serverId], references: [id], onDelete: Restrict)
   actorId String
@@ -150,6 +151,23 @@ model AuditEvent {
   outcome String
   createdAt DateTime @default(now())
   @@index([serverId, createdAt])
+}
+
+model ServerRequest {
+  id String @id @default(cuid())
+  guildId String
+  name String
+  icon String?
+  requesterId String
+  message String @default("")
+  status String @default("pending")
+  reviewNote String?
+  reviewedBy String?
+  serverId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([requesterId, createdAt])
+  @@index([status, createdAt])
 }
 
 model DiscordRateGate {
